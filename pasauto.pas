@@ -28,11 +28,13 @@ word=_record _case integer _of
 4:(p:@word);
 5:(s:pstr);
 6:(id:idptr);
+7:(s1:ps1);
 8:(r:real)
 _end;
  struc1=_record
  f0:@struc1; f1:integer;f2,f3:alfa;f4,f5,f6,f7,f8,f9,f10:word
 _end;
+ ps1 = @struc1;
  struc=_record 
  _case integer _of
  4:(d4: _array [1..4] _of word);
@@ -278,7 +280,9 @@ _);
 
 _procedure P26222(_var l2a1z:alfa; l2a2z:@struc1);
 _const block=(*=a1*)'БЛОК'(*=a0*);c259=259;c258=258;e48=4T;
-_var l2arra:_array [1..13] _of integer;
+_type oneinsn=_record next:@oneinsn; mode: integer; ir, op, addr:alfa _end;
+_var l2arra:_array [1..10] _of integer;
+l2v11z, l2v12z, l2v13z,
 l2v14z, l2v15z, l2v16z, l2v17z, l2v18z:integer;
 l2v19z:boolean;
 l2arrb:_array [20..30] _of integer;
@@ -2045,8 +2049,221 @@ l3v2z@ := [, 1, 0, l3v3z, '13'] _);
  _);
  _goto 11631
 _);
-24:
+24: _(
+ l3v2z@ := [, (2), l3a2z@.f3.s@.f1, 'ИА', l3a2z@.f3.s@.f8];
+ L11477;
+ l3v2z@ := [, , '12', 'ПА', 0];
+ L11477;
+ l3v2z@ := [, , '16', 'ПВ', 'ВП7'];
+_);
+25:l3v2z@ := [, , gl39z, 'ИК', l2v11z];
+26:l3v2z@ := [, , 0, 0, 0];
+27: _( l3v2z@.f3.a := 'СМ'; P5226( l3v2z@.f4.a, false); l3v2z@.f2.a := gl44z _);
+28: l3v2z@:= [, , gl44z, 'ЛУ', gl41z]
 _end; (* 12127 *)
+_);
+(* Level 3 *) _proced P12143(l3a1z:integer; l3a2z:pstr; l3a3z:alfa);
+_label 12164, 12166, 12205, 12211, 12240, 12242, 12355;
+_var l3v1z:pstr; l3v2z:alfa; l3v3z, l3v4z:integer; 
+(* Level 4 *) _proced L12130;
+ _(
+ L11466(l3v1z);
+ l3v1z@ := [l3a2z@.f4, 0];
+ l3a2z@.f4.s := l3v1z;
+ _);
+_( (* P12143 *)
+ _if (l3a1z > 23) _then sysErr(4);
+ _if (l3a1z <> 12) _then L12130;
+ _case l3a1z _of
+ 0:l3v1z@ := [, , (*=a1*)'LАВЕL'(*=a0*), , l3a3z];
+ 1: _(
+  l3v1z@.f3.a := 'ПБ';
+12164:
+ l3v1z@.f2.a := gl44z;
+12166:
+ l3v1z@.f4.a := l3a3z;
+ _);
+ 2:_( l3v1z@.f3.a := 'У1'; _goto 12164 _);
+ 3:_( l3v1z@.f3.a := 'У0'; _goto 12164 _);
+ 4: l3v1z@ := [, gl35z, l3a2z@.f2, l3a3z, l3a2z@.f1];
+ 7: 12205: _( l3v1z@.f2.a := '15'; l3v1z@.f3.a := 'ПА'; _goto 12166 _);
+ 5: 12211: _( _if (modeX) _then _( l3v1z@.f2.a := '10'; l3v1z@.f3.a := 'ИА'; l3v1z@.f4.i := (0); L12130; _); (*ineff*)
+ _if l3a1z = 8 _then _goto 12205 _else _goto 12240;
+ _);
+ 6, 13, 18, 21: sysErr(l3a1z);
+ 8: _goto 12211;
+ 9: l3v1z@ := [, ,  '17', l3a3z, 0];
+ 10: _( l3v1z@.f2.a := '17'; l3v1z@.f3.a := 'ЗЧ'; _goto 12166 _);
+ 11: 12240: _( l3v1z@.f2.a := '16'; 12242: l3v1z@.f3.a := 'ПВ'; _goto 12166 _);
+ 12: _(
+ _if (gl39z = l3a3z) _then exit
+ _else _(
+ mapai( gl39z, l3v3z);
+ mapai( l3a3z, l3v4z);
+ L12130;
+ _if l3v4z + 1 = l3v3z _then l3v1z@ := [, , '13', 'ПИ', gl39z]
+  _else _(
+   l3a3z := gl91a[l3v3z][l3v4z];
+   _if (l3a3z = '000000') _then _(
+    TNL(l3a3z);
+    gl91a[l3v3z][l3v4z] := l3a3z;
+   _);
+   _goto 12211;
+  _)
+ _); (* 12276 *)
+ _);
+ 14: _( l3v1z@.f2.a := '11'; l3v1z@.f3.a := 'ЗЧ'; _goto 12166 _);
+ 15: _( l3v1z@.f2.a := '14'; _goto 12242 _);
+ 16: _(
+  l3v1z@ := [, , l3a2z@.f2, 'ИА', l3a2z@.f1];
+  L12130;
+ l3v1z@ := [, , l3a3z, 'ПА', 0];
+ L3732( l3a2z@.f4.s1 );
+ _);
+ 17:_( l3v1z@.f3.a := 'СР'; l3v1z@.f2.i := (0); _goto 12166; _);
+ 19: l3v1z@ := [, , (0), 'Э050', l3a3z];
+ 20:l3v1z@ := [, , '17', 'СА', l3a3z];
+ 22: _(
+  l3v1z@ := [, (1), '15', 'ПА', 'ОV'];
+   L12130;
+   mapia( lineNum, l3v2z );
+   l3v1z@ := [, , '14', 'ПА', l3v2z];
+ 12355: L12130;
+ _goto 12211;
+ _);
+ 23: _(
+ l3v1z@ := [, , l3a2z@.f2, gl37z, l3a2z@.f1];
+ l3a2z@.f0.i := (3);
+ _goto 12355
+ _)
+ _end; (* 12421 *)
+_);
+(* Level 3 *) _proced P12422(l3a1z, l3a2z:alfa; l3a3z: char; l3a4z:pstr);
+_var l3v1z:pstr; l3v2z:alfa; _(
+ L11466(l3v1z);
+ mapia( l3a3z, l3v2z);
+ l3v1z@ := [ l3a4z@.f4, 0, l3a1z, l3a2z, l3v2z];
+ l3a4z@.f4.s := l3v1z;
+_);
+(* Level 3 *) _proced L12445(l3a1z:pstr);
+_var l3v1z:integer; _(
+ l3v1z := 23;
+ _if (l3a1z@.f3.s@.f6.i = (6)) _then _(
+ _if (l3a1z@.f5.i = (1)) _then  l3v1z := (3)
+ _else _if (l3a1z@.f2.i = (0)) _then _(
+ _if (l3a1z@.f1.i = (7)) _then l3v1z := (0)
+ _else _if (l3a1z@.f1.i = (256)) _then _(
+   l3v1z := (3);
+   l3a1z@.f2.i := (0);
+   l3a1z@.f1.a := 'Z64';
+ _)
+ _)
+ _);
+  P11512( l3v1z, l3a1z );
+ _);
+(* Level 3 *) _proced L12475(l3a1z:pstr);
+ _(
+ _if (l3a1z@.f0.i = (2)) _then _(
+   putInsn( '17ЗЧ' );
+   P12143( (16), l3a1z, '15' );
+   putInsn( '17СЧ' ); putInsn( '15ЗЧ' );
+   exit
+ _);
+ P12143( (4), l3a1z, 'ЗЧ' );
+ L3732( l3a1z@.f4.s1 );
+ _);
+(* Level 3 *) _proced L12520(l3a1z:pstr);
+_label 12556, 12557;
+_var l3v1z, l3v2z:alfa;  l3v3z:integer; _(
+ _if (l3a1z@.f3.id = boolType) _then _case l3a1z@.f0.i _of
+ 0: _if l3a1z@.f5.i = 0 _then P11512(0, l3a1z) _else P11512(1, l3a1z);
+ 1: _(  P11512(3, l3a1z); _if l3a1z@.f5.i <> 0 _then P11512(2, l3a1z) _);
+ 2:  _if (l3a1z@.f1.a <> label) _then _(
+   TNL(l3v1z);
+   P12143( ((3) - l3a1z@.f5.i), l3a1z, l3v1z );
+   12556: l3v3z := (1);
+   12557: TNL(l3v2z);
+   P11512( l3v3z, l3a1z );
+   P12143( (1), l3a1z, l3v2z );
+   P12143( (0), l3a1z, l3v1z );
+   P11512( ((1) - l3v3z), l3a1z );
+   P12143( (0), l3a1z, l3v2z );
+  _) _else _if l3a1z@.f5.i <> 0 _then P11512(2, l3a1z );  
+ 3: _(
+  l3v1z := l3a1z@.f1.a;
+ _if (l3a1z@.f5.i = (0)) _then _goto 12556
+ ;(*_else*) (q) _(  l3v3z := (0); _goto 12557 _)
+ _)
+ _end _else _( (* 12624 *)
+   _if (l3a1z@.f0.i <> (3)) _then _( 
+    P11512( (3), l3a1z );
+    l3a1z@.f0.i := (3);
+    exit
+   _)
+  _);
+ l3a1z@.f0.i := 3
+ _);
+(* Level 3 *) _proced L12635(l3a1z:pstr);
+ _(
+ L12520( l3a1z );
+ L3732( l3a1z@.f4.s1 );
+ _);
+(* Level 3 *) _proced P12643(l3a1z:pstr; _var l3a2z:pstr);
+_var l3v1z:pstr; _(
+ _if (l3a2z = _NIL) _then l3a2z := l3a1z
+ _else _(
+  l3v1z := l3a2z;
+  _while (l3v1z@.f0.s <> _NIL) _do  l3v1z := l3v1z@.f0.s;
+   l3v1z@.f0.s := l3a1z;
+ _)
+_);
+(* Level 3 *) _proced P12665(l3a1z, l3a2z:pstr);
+ _(
+ P12643( l3a1z@.f4.s, l3a2z@.f4.s );
+_);
+(* Level 3 *) _function F12677(l3a1z, l3a2z:pstr):boolean;
+ _(
+ F12677 := (l3a1z@.f6.i = 3) _and (l3a2z@.f6.i = 3);
+_);
+(* Level 3 *) _proced P12713(l3a1z, l3a2z: pstr; l3a3z:alfa);
+ _(
+ L12520( l3a1z );
+ P11512( 19, l3a1z );
+ L12520( l3a2z );
+ P12143( (15), l3a2z, l3a3z );
+ P12643( l3a1z@.f4.s, l3a2z@.f4.s );
+ l3a1z@.f4 := l3a2z@.f4;
+ _);
+(* Level 3 *) _proced P12741(l3a1z:alfa; l3a2z:boolean; l3a3z:pstr; l3a4z:pstr; l3a5z:integer);
+_label 12752, 12775;
+ _(
+ _case l3a3z@.f0.i _of
+ 0, 1: _case l3a4z@.f0.i _of
+   0, 1:_(
+   P11512( (3), l3a3z );
+ 12752:
+ P12643( l3a3z@.f4.s, l3a4z@.f4.s );
+ gl35z := l3a5z;
+ P12143( (4), l3a4z, l3a1z );
+ l3a3z@ := [3, , , , l3a4z@.f4, 0];
+   _);
+   2: _(
+   P11512( (3), l3a4z );
+   _if l3a2z _then _(
+  12775:
+   P12643( l3a4z@.f4.s, l3a3z@.f4.s );
+ gl35z := l3a5z;
+ P12143( (4), l3a3z, l3a1z );
+ l3a3z@ := [3, , , , , 0];
+ _) _else _(
+ _); (* 13027 *)
+   _);
+   3:
+ _end;
+ 2:;
+ 3:
+ _end;
+ gl35z := 0
 _);
 _( (* P26222 *)
  getToken;
@@ -2086,9 +2303,9 @@ write('#########################################################################
 write('############################################################################################');
 
  write('################################################');
- write('########################');
+% write('########################');
  write('############');
- write('######');
+% write('######');
  write('######');
 27721:;
 _).
