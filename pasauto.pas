@@ -2143,12 +2143,12 @@ _( (* P12143 *)
  _)
  _end; (* 12421 *)
 _);
-(* Level 3 *) _proced P12422(l3a1z, l3a2z:alfa; l3a3z: char; l3a4z:pstr);
+(* Level 3 *) _proced P12422(l3a1z, l3a2z:alfa; l3a3z: char; _var l3a4z:six);
 _var l3v1z:pstr; l3v2z:alfa; _(
  L11466(l3v1z);
  mapia( l3a3z, l3v2z);
- l3v1z@ := [ l3a4z@.f4, 0, l3a1z, l3a2z, l3v2z];
- l3a4z@.f4.s := l3v1z;
+ l3v1z@ := [ l3a4z.f4, 0, l3a1z, l3a2z, l3v2z];
+ l3a4z.f4.s := l3v1z;
 _);
 (* Level 3 *) _proced L12445(_var l3a1z:six);
 _var l3v1z:integer; _(
@@ -2239,42 +2239,42 @@ _);
  P12643( l3a1z.f4.s, l3a2z.f4.s );
  l3a1z.f4 := l3a2z.f4;
  _);
-(* Level 3 *) _proced P12741(l3a1z:alfa; l3a2z:boolean; l3a3z:psix; l3a4z:psix; l3a5z:integer);
+(* Level 3 *) _proced P12741(l3a1z:alfa; l3a2z:boolean; _var l3a3z, l3a4z:six; l3a5z:integer);
 _label 12747, 12752, 12775, 13013, 13045;
  _(
- _case l3a3z@.f0.i _of
- 0, 1: _case l3a4z@.f0.i _of
+ _case l3a3z.f0.i _of
+ 0, 1: _case l3a4z.f0.i _of
    0, 1: 12747: _(
-   P11512( (3), l3a3z@ );
+   P11512( (3), l3a3z );
  12752:
- P12643( l3a3z@.f4.s, l3a4z@.f4.s );
+ P12643( l3a3z.f4.s, l3a4z.f4.s );
  gl35z := l3a5z;
- P12143( (4), l3a4z@, l3a1z );
- l3a3z@ := [3, , , , l3a4z@.f4, 0];
+ P12143( (4), l3a4z, l3a1z );
+ l3a3z := [3, , , , l3a4z.f4, 0];
    _);
    2: _(
-   P11512( (3), l3a4z@ );
+   P11512( (3), l3a4z );
    _if l3a2z _then _(
   12775:
-   P12643( l3a4z@.f4.s, l3a3z@.f4.s );
+   P12643( l3a4z.f4.s, l3a3z.f4.s );
  gl35z := l3a5z;
- P12143( (4), l3a3z@, l3a1z );
- l3a3z@ := [3, , , , , 0];
+ P12143( (4), l3a3z, l3a1z );
+ l3a3z := [3, , , , , 0];
  _) _else 13013: _(
-  P11512( 19, l3a4z@ );
-  _if (l3a3z@.f0.i <> (3)) _then  P11512( (3), l3a3z@ );
-  l3a3z@.f1.i := (0);
-  l3a3z@.f2.a := '17';
+  P11512( 19, l3a4z );
+  _if (l3a3z.f0.i <> (3)) _then  P11512( (3), l3a3z );
+  l3a3z.f1.i := (0);
+  l3a3z.f2.a := '17';
   _goto 12775;
  _); (* 13027 *)
    _);
    3:_if l3a2z _then _goto 12775 _else _goto 13013
  _end;
- 2: _case l3a4z@.f0.i _of
+ 2: _case l3a4z.f0.i _of
    0,1: _goto 12747;
-   2: 13045: _( P11512( (3), l3a4z@ ); _goto 13013 _);
+   2: 13045: _( P11512( (3), l3a4z ); _goto 13013 _);
    3: _goto 13013 _end;
- 3: _case l3a4z@.f0.i _of
+ 3: _case l3a4z.f0.i _of
    0, 1: _goto 12752;
    2: _goto 13045;
    3: _goto 13013
@@ -2314,7 +2314,7 @@ _var l3v1z, l3v2z:idptr; _(
   _) _else _goto 13153
  _)
  _);
- P12741( l3a1z, l3a2z, l3a3z, l3a4z, (3) );
+ P12741( l3a1z, l3a2z, l3a3z@, l3a4z@, (3) );
  F13134 := false;
  _);
 (* Level 3 *) _proced P13176(l3a1z:boolean; _var l3a2z, l3a3z:six);
@@ -2686,9 +2686,9 @@ _( (* P14226 *)
   _if l3v9z _then  L3732( l3a2z@.f0.s1 );
 _);
 
-(* Level 3 *) _proced L16714(l3a1z:integer);+
+(* Level 3 *) _proced L16714(_var l3a1z:six);+
 
-(* Level 3 *) _function L14707(l3a1z:integer):boolean;
+(* Level 3 *) _function L14707(_var l3a1z:six):boolean;
  _(
  gl53z := (2);
  getToken;
@@ -2700,23 +2700,24 @@ _);
  _);
 
 (* Level 3 *) _proced L14735(l3a1z:integer);
- _((*=a1*)
- P4142( 'ОШИБКА', l3a1z );
- _);
+ _( (*=a1*) P4142( 'ОШИБКА', l3a1z ); (*=a0*)_);
 
 (* Level 3 *) _proced L14742;
  _(
  _if _not (lastChar = comma) _then  L14735( (0) );
  _);
  
-(* Level 3 *) _proced P14750(l3a1z, l3a2z:integer);
+(* Level 3 *) _proced P14750(l3a1z:integer; _var l3a2z:six);
+_const c1='10СР';c2='10ЛУ';c3='17СР';c4='15СЧ';c5='17СР-1';c6='15СР';c7='16ПВIS';
 _var l3v1z, l3v7z, l3v13z:six;
 l3v19z:boolean;
 l3v20z,
 l3v21z, l3v22z, l3v23z:integer;
 l3v24z:bitset;
-l3v25z, l3v26z, l3v27z, l3v28z,
-l3v29z, l3v30z, l3v31z, l3v32z, l3v33z, l3v34z, l3v35z, l3v36z:integer; _(
+l3v25z:alfa;
+l3v26z:boolean;
+l3v27z, l3v28z:alfa;
+l3v29z, l3v30z:integer; l3v31z:six; _(
  L20307(l3v1z);
  L14742;
  L20307(l3v7z);
@@ -2729,11 +2730,274 @@ l3v29z, l3v30z, l3v31z, l3v32z, l3v33z, l3v34z, l3v35z, l3v36z:integer; _(
    _if (l3v22z < (1)) _or (l3v22z > (47)) _then L14735( (7) );
    l3v24z := [48-l3v22z..47];
  _); (* 15020 *)
-
+ _if (l3a1z <> (1)) _then _(
+   L12520(l3v1z);
+   _if _not (l3v7z.f0.i <= (1)) _then  L14735( (1) );
+   _if l3v19z _then _(
+     _if (l3v20z <> (0)) _then P12422('000000', 'СД', chr(100B + l3v20z), l3v1z );
+   _) _else _(
+     P12143( (4), l3v7z, 'ИК' );
+     P12422( '000000', 'СД', chr(100B), l3v7z );
+     P12665(l3v1z, l3v7z);
+     l3v1z.f4 := l3v7z.f4;
+   _);
+   _if (l3a1z = (0)) _then _(
+     gl56z.b := l3v24z;
+     P5226(l3v25z, false );
+     mapai( l3v25z, l3v23z);
+     _if _not l3v19z _or ((l3v22z + l3v20z) <> 48) _then P12422('10', 'ЛУ', chr(l3v23z), l3v1z );
+   _);
+   l3a2z := l3v1z;
+ _) _else _( (* 15110 *)
+   l3v26z := false;
+   _if l3v19z _then _(
+     l3v21z := -l3v20z;
+     _if (l3v1z.f0.i = (0)) _then_(
+       l3v26z := true;
+       l3v30z :=   L7314( l3v1z.f1.a );
+       l3v30z := shift(l3v30z, l3v21z);
+       gl56z := ;
+       P5226(l3v28z, false );
+       l3v1z.f1.a := l3v28z;
+     _);
+     l3v24z := shift(l3v24z, l3v21z);
+     l3v24z := [0..47] - l3v24z;
+     gl56z := ;
+     P5226(l3v27z, false );
+   _);
+   _if l3v26z _and l3v19z _and (l3a2z.f4.s = _NIL) _then _(
+     l3v31z := l3a2z;
+     L12635( l3a2z );
+     ГГ('10СР'); ГГ( l3v28z ); putSep;
+     ГГ('10ЛУ'); ГГ( l3v27z ); putSep;
+     ГГ('10СР'); ГГ( l3v28z ); putSep;
+     L12475(l3v31z);
+   _) _else _if l3v19z _and (l3a2z.f4.s = _NIL) _then _(
+     l3v31z := l3a2z;
+     L12520(l3v1z);
+     P12422('00000', 'СД', chr(100B - l3v20z), l3v1z);
+     P11512( 19, l3v1z );
+     P12741('СР', true, l3v1z, l3a2z, (0) );
+     L3732( l3a2z.f4.s1 );
+     ГГ( '10ЛУ' ); ГГ( l3v27z ); putSep;
+     putInsn( '17СР' );
+     L12475(l3v31z);
+   _) _else _if l3v19z _then _(
+     _if (l3v1z.f2.i = (0)) _and (l3v1z.f4.s = _NIL) _then L12520(l3v1z)
+     _else _(
+       L12520(l3v1z);
+       P12422('000000', 'СД', chr(100B - l3v20z), l3v1z);
+     _);
+     P11512( 19, l3v1z );
+     L3732( l3v1z.f4.s1 );
+     l3v29z := l3a2z.f0.i;
+     P11512(12, l3a2z);
+     L3732( l3a2z.f4.s1 );
+     _if (l3v29z = (2)) _then _(
+       putInsn( '15СЧ' ); putInsn( '17СР-1' )
+     _) _else putInsn( '15СР' );
+     ГГ( '10ЛУ' ); ГГ( l3v27z ); putSep;
+     putInsn( '17СР' );
+     putInsn( '15ЗЧ' );
+   _) _else (sel) _(
+     L12520(l3v1z);
+     gl56z.b := l3v24z;
+     P11512(27, l3v1z );
+     P11512( 19, l3v1z );
+     L12520( l3v7z );
+     P11512( 19, l3v7z );
+     P12665(l3v1z, l3v7z );
+     P11512( 12, l3a2z );
+     P12665(l3v7z, l3a2z );
+     gl145z[17] := 'ИА';
+     L3732( l3a2z.f4.s1 );
+     L3712;
+     L3636;
+     L3667('16ПВIS' ); _exit sel
+   _)
+ _); (* 15361 *)
 _);
 
 (* Level 3 *) _proced L16431(* _var l3a1z:six *)+
-_var l3v1z, l3v2z, l3v3z, l3v4z, l3v5z, l3v6z, l3v7z, l3v8z, l3v9z, l3v10z, l3v11z:integer; _( _);
+_label 16625;
+_var l3v1z:idptr;
+l3v2z:integer; l3v3z:boolean;
+l3v4z:alfa;
+l3v5z, l3v6z, l3v7z, l3v8z, l3v9z, l3v10z, l3v11z:integer;
+
+(* Level 4 *) _proced L15362(l4a1z:integer);
+ _(
+ _if _not (l4a1z = (20)) _then  P4142((*=a1*) 'МНОЖИТ' (*=a0*), l4a1z );
+ L7305([0,1,2]);
+ l3a1z := [1, 1, 1, intType, _NIL, 0];
+ _GOTO 16625;
+_);
+
+(* Level 4 *) _proced stdCall;
+_var checkMode, stProc:integer; asBitset:bitset; l4v4z:pstr; 
+
+(* Level 5 *) _proced L15404(l5a1z:integer);
+_(
+  P4142((*=a1*) 'СТФУН' (*=a0*), l5a1z );
+  _if _not (l5a1z <> (9)) _then  L15362( (20) );
+_);
+
+_( (* stdCall *)
+  stProc := ord(l3v1z@.f3);
+  _if _not (lastChar = oparen) _then  L15362( (9) );
+  _if _not (stProc _IN [19,23]) _then _(
+    _select
+      stProc _IN [0..13,16..21]: L20307( l3a1z );
+      _not L14707( l3a1z): L15404(9)
+    _end;
+    l3a1z.f5.i := (0);
+    l4v4z := l3a1z.f3.s;
+    (sel) _select
+      (l3a1z.f3.s@.f6.i = (1)): _( l3a1z.f3 := l3a1z.f3.s@.f3; _goto sel _);
+      l3a1z.f3.id = realType: checkMode := (0);
+      (l3a1z.f3.id = intType): checkMode := (1);
+      (l3a1z.f3.id = charType): checkMode := (2);
+      (l4v4z@.f6.i = (0)) _and (l3a1z.f3.id <> alfaType): checkMode := (3);
+      (l4v4z@.f6.i = (2)): checkMode := (4);
+      (l4v4z@.f6.i = (6)): checkMode := (5);
+      (l4v4z@.f6.i = (3)): checkMode := (6);
+      true: checkMode := (7)
+    _end;
+    asBitset := [stProc];
+    _if ((checkMode <> (0)) _or ((asBitset * [0..8,15,17..19]) = []))
+    _and ((checkMode <> (1)) _or ((asBitset * [0..7,9,11..13,15..17,19]) = []))
+    _and (_not (checkMode _IN [2,3,4]) _or ((asBitset * [10,12,13,15]) = []))
+    _and ((checkMode <> (5)) _or ((asBitset * [14,15,22]) = []))
+    _and ((checkMode <> (6)) _or ((asBitset * [10,15,19,20,21]) = [])) 
+    _and ((checkMode <> (7)) _or (stProc <> (15))) _then L15404( (2) );
+    _if  ((asBitset * [7,12,13,17,19]) <> []) _then  l3v1z@.f5 := l3a1z.f3;
+    _if  ((asBitset * [0..9,12,13,17..21]) <> []) _then  L12520( l3a1z );
+
+  _); (* 15564 *)
+  _case stProc _of
+  0, 1, 2, 3, 4, 5, 6: (*15565*) _(
+    _if (checkMode = (1)) _then  P11512( 18, l3a1z );
+    P12143( 19, l3a1z, chr(stProc) );
+  _);
+  7: (*15577*) _(
+    P11512( 26, l3a1z );
+    l3a1z.f4.s@ := [, ((3) - ((2) * checkMode)), , 'МВ'];
+  _);
+  8: (*15611*) P11512( (4), l3a1z );
+  9: (*15615*) _( P11512( (20), l3a1z ); l3a1z.f0.i := (2); l3a1z.f1.a := label _);
+  10: (*15624*) _if (l3a1z.f3.id = boolType) _then  L12520( l3a1z );
+  11, 16: (*15631*) _( _);
+  12, 13: (* 15632 *) P11512( stProc + 9, l3a1z );
+  14: (* 15637 *) 
+    _if (l3a1z.f2.i = (0)) _then _(
+      _if (l3a1z.f1.i = (7)) _then _(
+        gl56z.a := chr(172B);
+        P5226(l3v4z, false );
+        P11512( (0), l3a1z );
+        l3a1z.f4.s@.f0 := [, , 1, , 7];
+        P11512( (2), l3a1z );
+        l3a1z.f4.s@.f4.a := l3v4z;
+        l3a1z.f5.i := (1);
+        l3a1z.f0.i := (2);
+      _) _else _(
+        l3a1z := [0, '13', 0, , _NIL, 1];
+      _)
+    _) _else _( (* 15700 *)
+      _if (l3a1z.f5.i = (0)) _then P3606( l3a1z.f1.a, (2) )
+      _else _( P12143( 23, l3a1z, 'ВИ' );
+        l3a1z.f0.i := (2);
+        gl145z[9] := ;
+        l3a1z.f1.a := label;
+      _)
+    _);
+  15: _( L12445( l3a1z ); l3a1z.f0.i := (3); _);
+  17: _(
+    P11512( 19, l3a1z );
+    _if  (checkMode = (1)) _then  P11512( (16), l3a1z );
+    P12143( (9), l3a1z, 'АУ' );
+    l3a1z.f4.s@.f1.i := ((3) - ((2) * checkMode));
+    _if  (checkMode = (1)) _then  P11512( (17), l3a1z );
+  _);
+  18: _( P12143( 11, l3a1z, 'АС' ); l3a1z.f4.s@.f1.i := 2; gl145z[12] := ;  _);
+  20: _( P11512( 26, l3a1z ); l3a1z.f4.s@.f3.a := 'ВЧ'; _);
+  21: _(
+    P11512( 26, l3a1z ); l3a1z.f4.s@.f3.a := 'ВН';
+    P11512( 1, l3a1z ); l3a1z.f4.s@.f3.a := 'АВ';
+  _);
+  22: _(
+    gl56z.a := chr(175B);
+    P5226(l3v4z, false );
+    _if (l3a1z.f2.i = (0)) _then _(
+      _if (l3a1z.f1.i = (7)) _then _(
+        P11512( (0), l3a1z );
+        l3a1z.f4.s@ := [, , 1, , 7];
+      _) _else  L15404( (3) );
+    _) _else _(
+      _if (l3a1z.f5.i = (1)) _then _(
+        L12520( l3a1z );
+        P12143( 11, l3a1z, 'ПА' );
+        P11512( (0), l3a1z );
+        l3a1z.f4.s@ := [, 1, '15' ];
+      _) _else _(
+        _if ( l3a1z.f3.s@.f7.i = (0)) _then P3606( l3a1z.f1.a, (1) );
+        P12143( (4), l3a1z, 'ИК' );
+        P11512( (8), l3a1z );
+      _);
+    _); (* 16064 *)
+    P11512( (2), l3a1z );
+    l3a1z.f4.s@.f4.a := l3v4z;
+    l3a1z.f5.i := (1);
+    l3a1z.f0.i := (2);
+  _);
+  23: _( P14750( (2), l3a1z ); l3v1z@.f5 := l3a1z.f3 _);
+  19: P14750( (0), l3a1z )
+  _end;
+   _if (lastChar <> cparen) _then L15404( (1) ) _else  getToken;
+_);
+
+(* Level 4 *) _proced P16240;
+_var l4v1z:six; l4v7z, l4v8z, l4v9z, l4v10z, l4v11z, l4v12z, l4v13z:integer;
+l4v14z:bitset; l4v15z, l4v16z:integer;
+
+(* Level 5 *) _proced L16150(l5a1z:integer);
+_(
+ l4v14z := l4v14z;
+ l4v14z := [l5a1z];
+_);
+
+(* Level 5 *) _proced P16156(l5a1z, l5a2z:integer);
+_(
+ l4v14z := l4v14z;
+ l4v14z := [l5a1z..l5a2z];
+_);
+
+(* Level 5 *) _proced L16170(_var l5a1z:six);
+_(
+  L20307( l5a1z );
+  _if l5a1z.f3.s@.f6.i = 1 _then  l5a1z.f3 := l5a1z.f3.s@.f3;
+  l3v1z := l5a1z.f3.id;
+  _if (l3v1z@.f6.i <> (0))
+  (*=c-*)_or (l3v1z = realType) _or (l3v1z = alfaType)(*=c+*)
+  _then (*=a1*)P4142( 'МНОЖИТ', (8) );(*=a0*)
+_);
+(* Level 5 *) _proced L16214;
+ _(
+ _if l3v3z _then _(
+   P11512( (8), l3a1z );
+   l4v13z := l3a1z.f4.i;
+   P11512(19, l3a1z );
+   l3v3z := false;
+ _);
+ L12520(l4v1z );
+ P12665( l3a1z, l4v1z );
+ _);
+
+_( (* P16240 *)
+_);
+
+_( (* L16431 *)
+16625:
+_);
 
 (* Level 3 *) _proced L16714 (* l3a3z: integer *)+
 _var l3v1z, l3v2z, l3v3z, l3v4z, l3v5z, l3v6z, l3v7z, l3v8z, l3v9z, l3v10z, l3v11z, l3v12z, l3v13z, l3v14z, l3v15z, l3v16z, l3v17z, l3v18z, l3v19z, l3v20z, l3v21z, l3v22z, l3v23z, l3v24z, l3v25z, l3v26z:integer;
@@ -2787,12 +3051,11 @@ write('#########################################################################
 write('############################################################################################');
 write('############################################################################################');
 write('############################################################################################');
-write('############################################################################################');
 
 % write('################################################');
-write('########################');
+% write('########################');
 write('############');
 % write('######');
-write('######');
+% write('######');
 27721:;
 _).
