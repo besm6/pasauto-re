@@ -66,6 +66,7 @@ _end;
  inst = _record f0:pInst; f1:integer; f2, f3:alfa;
    _case boolean _of true:(f4: alfa); false:(f4b:bitset) _end;
  pInst = @inst;
+ tkind = (tk0, tkIdent, tkWord, tkInt, tkStr, tkReal, tkChar, tkField);
 _var
    modeB:integer;
    rval:real;
@@ -73,18 +74,19 @@ _var
    modeG, gl16z, modeDe, modeCH, modeeL : boolean;
    inInclude: boolean;
           errcnt, maxerr, gl23z, lineNum, gl25z, gl26z, gl27z, gl28z, poolIdx,
-   gl30z, gl31z, gl32z, gl33z, modeK, gl35z, gl36z:integer;
+   gl30z, poolStart, poolAddr, gl33z, modeK, gl35z, gl36z:integer;
    gl37z, tok, gl39z:alfa;
-   gl40z, gl41z, gl42z:word;
+   gl40z, gl41z, gl42z,
    gl43z, gl44z:alfa; gl45z:alfa;
    fname:alfa;
    gl47z:@word;
    endl:char;
    seqGOST, seqITM:char;
    lastChar: char;
-   tokKind, gl53z, gl54z, modeA:integer; gl56z:word;
+   tokKind:tkind;
+   gl53z, gl54z, modeA:integer; curVal:word;
    gl57z, gl58z, modeC,
-   gl60z, gl61z, gl62z, gl63z, gl64z, modeE, modeP, modeT, modeR, modeM,
+   gl60z, leftInsn, gl62z, gl63z, errSeen, modeE, modeP, modeT, modeR, modeM,
    modeL, gl71z, modeI, skipping, modeX: boolean;
    curIdent:idptr; 
    gl76z, gl77z,
@@ -157,7 +159,7 @@ _);
    L3013( gl26z );
    _select
     (l2a2z = 2): write(' ОТСУТСТ В СПИСКЕ МЕТОК');
-    (l2a2z = (3C)): _(  write(' УЖЕ ОПРЕД В СТРОКЕ '); L3013( gl56z.i ) _);
+    (l2a2z = (3C)): _(  write(' УЖЕ ОПРЕД В СТРОКЕ '); L3013( curVal.i ) _);
     true: write(' НЕ ОПРЕД')
     _end;
  _);
@@ -264,7 +266,7 @@ _) _else _(
   _);
   15: _(
    write('ПВ:ВИ15=ВМ13,СД61=17ЛС,16ПБ=,ВП7:ВИ16=ВМ13,12СМ=СД117,17ЗЧ=12ИК,ПБ=,ВП6:17СЧ=УМ13,УИ16=16ПБ,ВП:17СИ11=11ПИ13,ВП1:12СЧ=У0ВП2,11СР3=У0ВП3,12СЧ=СР13,У1ВПШ=11СЧ3,СР');
- ГГ( gl40z.a );
+ ГГ( gl40z );
  write('=У0ВП4,СР13=У1ВПШ,17СА100=ВИ11,ВМ12=ВМ13,ВМ14=ВМ15,17ЗЧ=11ИА2,12ПА=12ИК,СЧ4=У1ВПШ,12СЧ=СД117,14ПВRSR=,12ИК=16ПВ,17СЧ=УМ15,УМ14=УМ13,УМ12=УИ11,17СЧ10=17СА-100,ПБВП5=,ВП4:11ИК2=СЧ,ВП5:13ЗЧ2=13СА1,12СА1=11СА2,ПБВП1=,ВП3:11СЧ2=ПБВП5,ВП2:11СЧ3=У1ВПШ,17СЧ=ПБRSR,ВПШ:17СЧ=14ПВRSR,11ПАВПТ=СЧ13,ПБТОШ=,А;ВПТ:ФПАРОШ,К;');
   _)
    _end; l2v1z := l2v1z + 1;
@@ -290,8 +292,9 @@ comma=',';cparen=')'; obrack='[';cbrack=']';(*=a0*)
 c259=259;c258=258;e48=4T;
 _type oneinsn=_record next:@oneinsn; mode: integer; ir, op, addr:alfa _end;
 _var l2v1z:integer; l2v2z: idptr; arra:_array [3..10] _of integer;
-l2v11z, l2v12z, l2v13z,
-l2v14z, l2v15z, l2v16z, l2v17z, l2v18z:integer;
+l2v11z:integer;
+l2v12z:alfa;
+l2v13z,l2v14z, l2v15z, l2v16z, l2v17z, l2v18z:integer;
 l2v19z:boolean; l2v20z:word; l2v21z:idptr; l2v22z:word;
 l2v23z:idptr;
 l2arrb:_array [24..26] _of integer;
@@ -311,9 +314,9 @@ _(
   mapia(l3a2z+l3v1z, l3a1z);
 _);
 (* Level 3 *) _proced putSep; _(
- _if gl61z _then  output@ := ieq _else output@ := icomma;
- gl61z := _not gl61z;
- gl42z.i := 0;
+ _if leftInsn _then  output@ := ieq _else output@ := icomma;
+ leftInsn := _not leftInsn;
+ gl42z := '0';
  put(output);
  _);
  _proced putInsn(l3a1z:alfa); _(
@@ -338,13 +341,13 @@ _proced L3651(l3a1z:alfa); _(
 (* Level 3 *) _proced L3667(l3a1z:alfa);
  _(
  ГГ( l3a1z );
- _if gl61z _then  write('=,')
- _else _( write(icomma); gl61z := true; _);
- gl42z.i := 0;
+ _if leftInsn _then  write('=,')
+ _else _( write(icomma); leftInsn := true; _);
+ gl42z := '0';
  _);
-(* Level 3 *) _proced L3703;
+(* Level 3 *) _proced align;
  _(
- _if _not gl61z _then _( write(icomma); gl61z := _not gl61z _)
+ _if _not leftInsn _then _( write(icomma); leftInsn := _not leftInsn _)
  _);
 (* Level 3 *) _proced L3712;
  _(
@@ -352,11 +355,11 @@ _proced L3651(l3a1z:alfa); _(
  _);
 (* Level 3 *) _proced L3721(l3a1z:alfa);
  _(
- L3703;
+ align;
  ГГ( l3a1z );
  write(icolon);
  L3712;
- gl42z.a := l3a1z;
+ gl42z := l3a1z;
  _);
 (* Level 3 *) _proced L3732(l3a1z:pInst);
 _const mask='070000';
@@ -394,7 +397,7 @@ _var l3v1z:alfa; l3v2z:pInst; _(
  _if (l3a1z@.f2 = label) _then _(
  _if l3a1z@.f4 <> '0' _then L3721( l3a1z@.f4 ) _else _(
   TNL(l3v1z);
- L3703;
+ align;
  write('10ПВУРЕГ=,');
  ГГ( l3v1z );
  ГГ( ':10СА-' );
@@ -416,7 +419,7 @@ _var l3v1z:alfa; l3v2z:pInst; _(
  _if l3a1z@.f4<> '0' _then  ГГ( l3a1z@.f4 );
  _);
  putSep;
- _if (l3a1z@.f3 = 'ПВ') _or (l3a1z@.f3 = 'Э050') _then L3703;
+ _if (l3a1z@.f3 = 'ПВ') _or (l3a1z@.f3 = 'Э050') _then align;
  _); (* 4141 *)
 _);
 (* Level 3 *) _proced P4142(l3a1z:alfa; l3a2z:integer);
@@ -429,7 +432,7 @@ _);
  ГГ( '.ИД=' ); ГГ( tok ); ГГ( '.СИМ=' ); ГГ( lastChar );
  writeln('.КОНТЕКСТ');
  code(16ПВСТХТ=,);
- gl64z := true;
+ errSeen := true;
  errcnt := (errcnt + (1));
  _if (errcnt > maxerr) _then (q) _GOTO 27721;
  _);(*=a0*)
@@ -446,12 +449,12 @@ _);
  _);
 (* Level 3 *) _proced L4225(l3a1z:integer);
 _var l3v1z:alfa; l3v2z:idptr; _(
- gl42z.i := (0);
+ gl42z := '0';
  _case l3a1z _of
  1: _(  ГГ( 'ПБЕ' ); _if (l2v31z <> (0)) _then ГГ( 'F' ); _);
  0: _(
  l3v2z := l2a2z;
- L3703;
+ align;
  _if (gl39z <> '1') _then _(
     mapai( gl39z, l3a1z );
    gl145z[l3a1z] := 'ИА';
@@ -513,10 +516,10 @@ _var l3v1z:word; _(
  _);
  _case l3a1z _of
 0: _(
- L3703;
+ align;
  ГГ( l3a2z );
  write(icolon);
-gl42z.a := l3a2z;
+ gl42z := l3a2z;
  exit;
 _);
 1: _(
@@ -568,11 +571,11 @@ _)
 _end;
  putSep;
 _);
-(* Level 3 *) _proced P4511(l3a1z, l3a2z, l3a3z:integer);
+(* Level 3 *) _proced P4511(l3a1z:integer; l3a2z, l3a3z:alfa);
  _(
  _select
  (l3a1z = 5): _(
- L3703; L3636;
+ align; L3636;
  ГГ( '15ПА' ); ГГ( l3a2z ); write('=ВИ15,СД'); ГГ( l3a3z );
  write('=13ЛС1,13ЗЧ1'); putSep;
  _);
@@ -619,12 +622,12 @@ l3v1z := (0);
    idTabA[l3v1z] := _NIL;
    l3v1z := l3v1z + 1;
  _);
- modeA := 1;  modeB := ; lineNum := ; gl39z := ; modeC := ; gl61z := ; gl62z := ; modeM := ;
+ modeA := 1;  modeB := ; lineNum := ; gl39z := ; modeC := ; leftInsn := ; gl62z := ; modeM := ;
  gl101z := ;
  modeR := ; modeP := ; modeT := ; gl36z := ;
  fname := spaces;
  gl35z := (0); modeE := ; gl33z := ; gl28z := ; gl53z := ; gl23z := ; gl106z := ;
- gl40z := ; gl64z := ; gl71z := ; gl12z := ; gl13z := ; gl45z := ; skipping := ; modeF := ; modeG := ;
+ gl40z := ; errSeen := ; gl71z := ; gl12z := ; gl13z := ; gl45z := ; skipping := ; modeF := ; modeG := ;
  modeV := ; modeS := ; gl107z := ; gl108z := ; gl109z := ;
  modeDe := ; modeCH := ; modeeL := ; gl102z := ; gl103z := ;
  inInclude := ; modeL := ; gl63z := ; gl58z := ; modeX := ; gl44z := ;
@@ -632,8 +635,8 @@ l3v1z := (0);
  endl := chr(175B);
  gl89z := -1; gl90z := ;
  modeK := (100);
- gl31z := ord(ref(pool[9]));
- gl32z := gl31z - 9;
+ poolStart := ord(ref(pool[9]));
+ poolAddr := poolStart - 9;
  gl47z := _NIL;
  gl4634z := ;
  curIdent := ;
@@ -781,25 +784,25 @@ _(
 (* Level 3 *) _proced P5215(_var l3a1z:integer; _var l3a2z:integer);
  _( code(=15ПА15,ВИ15=СД/4/,MP=3ИК3,ЛС=); l3a2z := ;
  _);
-(* Level 3 *) _proced P5226(_var l3a1z:alfa; l3a2z:boolean);
+(* Level 3 *) _proced putConst(_var offset:alfa; force:boolean);
 _var l3v1z:integer; _(
- _if _not l3a2z _then _(
- gl31z := gl31z;
+ _if _not force _then _(
+ poolStart := poolStart;
  code(=УИ5,);
  l3v1z := 9 - poolIdx;
  code(=УИ4,);
- gl56z := gl56z;
+ curVal := curVal;
  code(ЗЧ1=,find:СЧ1=5CP,У0done=5CA1,4КЦfind=);
  _);
  poolIdx := poolIdx + 1;
  _if poolIdx >= 4096 _then sysErr(23);
 
- pool[poolIdx] := gl56z;
- mapia( poolIdx, l3a1z );
+ pool[poolIdx] := curVal;
+ mapia( poolIdx, offset );
  exit; code(done:ВИ5=);
  l3v1z := ;
- l3v1z := (l3v1z - gl32z);
- mapia( l3v1z, l3a1z );
+ l3v1z := (l3v1z - poolAddr);
+ mapia( l3v1z, offset );
  _);
 (* Level 3 *) _proced L5264(l3a1z:alfa);
 _var dum:char; l3v1z: _array[1..11] _of char;
@@ -815,8 +818,8 @@ l3v13z, l3v14z:integer; l3v15z:word; _(
  l3a1z := spaces;
  unpck( l3v1z[l3v14z-6], l3a1z );
  pck(l3v1z[6], l3v15z.a);
- gl56z := l3v15z;
- P5226( gl41z.a, true );
+ curVal := l3v15z;
+ putConst( gl41z, true );
  _);
 (* Level 3 *) _proced L5312(l3a1z:alfa);
 _var dum:char; l3v1z:_array [1..11] _of char; l3v13z, l3v14z:integer; l3v15z:word;  _(
@@ -828,8 +831,8 @@ _var dum:char; l3v1z:_array [1..11] _of char; l3v13z, l3v14z:integer; l3v15z:wor
  l3a1z := spaces;
  unpck( l3v1z[l3v14z-6], l3a1z );
  pck(l3v1z[6], l3v15z.a);
- gl56z := l3v15z;
- P5226( gl41z.a, false );
+ curVal := l3v15z;
+ putConst( gl41z, false );
  _);
 (* Level 3 *) _proced P5340(l3a1z: idptr; l3a2z:boolean);
 _var l3v1z:alfa; l3v2z:alfa; l3v3z, l3v4z:alfa; _(
@@ -838,16 +841,16 @@ _var l3v1z:alfa; l3v2z:alfa; l3v3z, l3v4z:alfa; _(
  TNL(l3v1z);
  L3644;
  L3656( 'ПБ', l3v1z );
- L3703;
+ align;
  _);
  TNL(l3v2z);
  L3721( l3v2z );
  L3651( 'ЗЧ1' );
  l3a1z@.f0 := l3v2z;
- gl56z := l3a1z@.f7;
- P5226( l3v3z, false );
- gl56z.i := l3a1z@.f8.i - gl56z.i;
- P5226( l3v4z, false );
+ curVal := l3a1z@.f7;
+ putConst( l3v3z, false );
+ curVal.i := l3a1z@.f8.i - curVal.i;
+ putConst( l3v4z, false );
  L3644;
  L3656( 'АВ', l3v3z );
  putInsn( '15У1' );
@@ -864,7 +867,7 @@ _var l3v1z:idptr; _(
  _if (l3a1z@.f8.i = (0)) _then _(
  l3v1z := l3a1z@.f3;
  L5264( l3v1z@.f0 );
- l3a1z@.f8 := gl41z;
+ l3a1z@.f8.a := gl41z;
  (loop) _(
  l3v1z := l3v1z@.f7.id;
  _if (l3v1z = _NIL) _then exit;
@@ -956,7 +959,7 @@ lineNum := 1;
  code(11CA2=12КЦL5601,);
  prepErr( (4) );
 _);
- (* Level 4 *) _proced P5617;
+ (* Level 4 *) _proced escChar;
 _var l4v1z:integer; _(
  get(input);
  _if (input@ > chr(3)) _then  L5462( (2) );
@@ -1134,7 +1137,7 @@ _);
 6304:
 gl23z := gl23z + 1;
 _if input@ _in letter _then _(
- tokKind := (1);
+ tokKind := tkIdent;
  getId;
  gl60z := false;
  (*=c-*)mapai( (tok _and '000177'), gl25z );(*=c+*)
@@ -1170,7 +1173,7 @@ _while (curIdent <> _NIL) _do _(
  l3v14z := gl28z;
  _while (l3v14z >= (1)) _do _(
  _if (gl422a[l3v14z][1] = l3v16z.a) _then _(
- tokKind := (7);
+ tokKind := tkField;
  _if (l3v14z > gl27z) _then _(
  gl27z := l3v14z;
  l3v17z := curIdent;
@@ -1185,7 +1188,7 @@ _while (curIdent <> _NIL) _do _(
  _);
  3: _( (* 6407 *)
  curIdent := idTabA[gl25z];
- tokKind := (7);
+ tokKind := tkField;
  _while (curIdent <> _NIL) _do _(
  _if (curIdent@.f0 <> tok) _then _(
  curIdent := curIdent@.f2;
@@ -1200,13 +1203,13 @@ _goto 6462;
 _);(* 6436 *)
 _if (input@ = '_') _then _(
  get(input);
- tokKind := 2;
+ tokKind := tkWord;
  _if _not (input@ _in letter ) _then _(
- _if (* ( *) (input@ = ')') _or (input@ = '(') (* ) *) _then _(
-   _if (input@ = '(') (* ) *)_then tok := 'ВЕGIN' _else tok := 'ЕND';
+ _if (input@ = cparen) _or (input@ = oparen) _then _(
+   _if (input@ = oparen) _then tok := 'ВЕGIN' _else tok := 'ЕND';
     get(input);
  _) _else _(
-    tokKind := 0;
+    tokKind := tk0;
     exit
  _)
  _) _else
@@ -1217,7 +1220,7 @@ _if (input@ = '_') _then _(
  exit
  _); (* 6465 *)
  _if input@ <= '9' _then _(
- tokKind := 3;
+ tokKind := tkInt;
  l3v14z := 0;
  _repeat
   l3v14z := l3v14z + 1;
@@ -1269,7 +1272,7 @@ _if (input@ = '.') _then _(
  get(input);
  _if (input@ = '.') _then _( input@ := ':'; _goto 6462; _);
  rval := gl26z;
- tokKind := (5);
+ tokKind := tkReal;
  _if (input@ > '9') _then L5462( (8) ) _else _(
  _repeat
    rval := 10.0 * rval + ord(input@);
@@ -1279,7 +1282,7 @@ _if (input@ = '.') _then _(
  _)
  _); (* 6620 *)
  _if (input@ = 'E') _then _(
- _if (l3v43z = (0)) _then _( rval := gl26z; tokKind := (5); _);
+ _if (l3v43z = (0)) _then _( rval := gl26z; tokKind := tkReal; _);
    l3v18z := false;
    get(input);
    _case input@ _of
@@ -1318,7 +1321,7 @@ _if (input@ = '.') _then _(
   l3v14z := (6);
   (loop) _(
    get(input);
-   _if (input@ = chr(125B)) _then P5617 _else _(
+   _if (input@ = chr(125B)) _then escChar _else _(
       _if (input@ = '''') _then _( get(input); _if (input@ <> '''') _then _exit loop; _);
       _if (modeA = 0) _then MAPГA( input@,  input@);
    _);
@@ -1328,10 +1331,10 @@ _if (input@ = '.') _then _(
   _goto loop;
   _); (* 6755 *)
   pck(l3v1z[l3v14z-6], tok);
-  _if (l3v14z > (7)) _then  tokKind := (4) _else  tokKind := (6);
+  _if (l3v14z > (7)) _then  tokKind := tkStr _else  tokKind := tkChar;
   _goto 6462;
   _) _else _( (* 6767 *)
-     tokKind := (4);
+     tokKind := tkStr;
      gl30z := (0);
     gl60z := false;
     l3v15z := (0);
@@ -1342,7 +1345,7 @@ _if (input@ = '.') _then _(
     (* 7001 *) (oneword)_while l3v14z <= 5 _do _(
     get(input);
     _if (input@ = endl) _and modeCH _then _( get(input); lineNum := lineNum + 1; _);
-    _if (input@ = chr(85)) _then P5617 _else _(
+    _if (input@ = chr(125B)) _then escChar _else _(
      _if (input@ = '''') _then _(
          get(input);
         _if (input@ <> '''') _then _(
@@ -1359,8 +1362,8 @@ _if (input@ = '.') _then _(
      l3v14z := (l3v14z + (1));
     _); (* 7040 *)
     pck(l3v1z[0], l3v21z);
-    gl56z.a := l3v21z;
-    P5226(l3v21z, true);
+    curVal.a := l3v21z;
+    putConst(l3v21z, true);
     _if gl58z_then _(  gl58z := false; tok := l3v21z; _);
     _if gl60z _then _goto 6462;
     l3v15z := (l3v15z + (1));
@@ -1368,7 +1371,7 @@ _if (input@ = '.') _then _(
     L5462(1);
     _);
  _); (* 7060 *)
- tokKind := 0;
+ tokKind := tk0;
  _if (input@ = chr(253)) _then _(
     get(input); lastChar := chr(128);
     exit
@@ -1404,13 +1407,13 @@ _var l3v1z, l3v2z:boolean; l3v3z:integer; _(
  l3v3z := (0);
  _while (l3v3z <= (4)) _do _(
    _if (l3v3z _IN l3a1z) _then _case l3v3z _of
-    0: l3v2z := ((tokKind = (0)) _and (lastChar = ';')) _or
-    (((tok = then) _or (tok = else) _or (tok = until) _or (tok = end) _or (tok = do)) _and (tokKind = 2));
-    1: l3v2z := ((tok=begin)_or(tok=functi)_or(tok=proced)_or(tok=type)_or(tok=const)_or(tok=label)_or(tok=var))_and(tokKind=2);
-    2: l3v2z := ((tok=begin)_or(tok=go)_or(tok=if)_or(tok=goto)_or(tok=with)_or(tok=while)_or(tok=repeat)_or(tok=for)_or(tok=select)_or(tok=back)_or(tok=branch))_and(tokKind=2);
-    3: l3v2z := (tokKind = 0) _and (lastChar = ',');
-    4: l3v2z := tokKind = 1;
-    5: l3v2z := (tokKind = 0) _and (lastChar = ';')
+    0: l3v2z := ((tokKind = tk0) _and (lastChar = ';')) _or
+    (((tok = then) _or (tok = else) _or (tok = until) _or (tok = end) _or (tok = do)) _and (tokKind = tkWord));
+    1: l3v2z := ((tok=begin)_or(tok=functi)_or(tok=proced)_or(tok=type)_or(tok=const)_or(tok=label)_or(tok=var))_and(tokKind=tkWord);
+    2: l3v2z := ((tok=begin)_or(tok=go)_or(tok=if)_or(tok=goto)_or(tok=with)_or(tok=while)_or(tok=repeat)_or(tok=for)_or(tok=select)_or(tok=back)_or(tok=branch))_and(tokKind=tkWord);
+    3: l3v2z := (tokKind = tk0) _and (lastChar = ',');
+    4: l3v2z := tokKind = tkIdent;
+    5: l3v2z := (tokKind = tk0) _and (lastChar = ';')
    _end;
    l3v1z := l3v1z _or l3v2z;
    L7143 := l3v1z;
@@ -1489,13 +1492,13 @@ _label 7531, 7567, 7570, 7601, 7666;
 _var l3v1z:idptr; l3v2z:char; _(
   l3v1z := l3a1z;
  _case tokKind _of
-2: _(
+tkWord: _(
  _if (tok <> 'NIL') _then _goto 7666;
  7531:
  l3a1z := ptrType;
  l3a2z := gl43z;
 _);
-1: _(
+tkIdent: _(
  _if (curIdent = _NIL) _then _goto 7666;
  _if (curIdent@.f4.i <> (1)) _or (curIdent@.f3 <> _NIL) _then _goto 7666;
  _if (curIdent@.f5.id@.f6.i <> 0) _then _(
@@ -1503,32 +1506,32 @@ _);
  _); (* 7554 *)
   l3a1z := curIdent@.f5.id;
   l3a2z := curIdent@.f6.a;
-  gl56z.i := L7314( l3a2z );
+  curVal.i := L7314( l3a2z );
 _);
-7: _goto 7666;
-4: _( l3a1z := alfaType;
-  7567: gl56z.a := tok;
-  7570: P5226( l3a2z, false );
+tkField: _goto 7666;
+tkStr: _( l3a1z := alfaType;
+  7567: curVal.a := tok;
+  7570: putConst( l3a2z, false );
   _);
-3: _(
+tkInt: _(
   l3a1z := intType;
-  gl56z.i := gl26z;
+  curVal.i := gl26z;
   _goto 7570;
  _);
-5: _(
+tkReal: _(
  l3a1z := realType;
- 7601: gl56z.r := rval;
+ 7601: curVal.r := rval;
  _goto 7570;
  _);
-6: _(  l3a1z := charType; _goto 7567 _);
-0: _(
+tkChar: _(  l3a1z := charType; _goto 7567 _);
+tk0: _(
  _if _not l3a3z _then _goto 7666;
  _if (lastChar = '+') _or (lastChar = '-') _then l3v2z := lastChar _else _goto 7666;
  getToken;
  P7520( l3a1z, l3a2z, false );
  _if (l3a1z = _NIL) _then _goto 7666;
  _if (l3v2z = '-') _then _( 
-   _if (l3a1z = intType) _then _( gl56z.i := -gl26z; _goto 7570 _)
+   _if (l3a1z = intType) _then _( curVal.i := -gl26z; _goto 7570 _)
    _else _(
   _if (l3a1z = realType) _then _( rval := -rval; _goto 7601 _)
   _else _goto 7666;
@@ -1540,37 +1543,37 @@ _end;
  _then exit;
  7666: l3a1z := _NIL; (q)
 _);
-_proced P10351(l3a1z, l3a2z:integer; _var l3a3z:idptr; l3a4z:integer);
+_proced parseType(l3a1z, l3a2z:integer; _var l3a3z:idptr; l3a4z:integer);
 _label 10503, 10505, 10507, 10527, 11022, 11126;
 (*=a1*)_const packed='PACKED';
-_var l3v1z, l3v2z, l3v3z :idptr;
-l3v4z:boolean;
+_var baseType, curType, l3v3z :idptr;
+isPacked:boolean;
 l3v5z:alfa; l3v6z:word;  l3v7z, l3v8z: integer;
 (* Level 4 *) _proced typeErr(l4a1z:integer);
  _(
  error( 'ТИП', l4a1z );
  _);
-(* Level 4 *) _function L7677(l4a1z:idptr):integer;
+(* Level 4 *) _function bitWidth(l4a1z:idptr):integer;
 _label 7703;
 _var l4v1z:word; _(
  _if (l4a1z@.f5.i <> (1)) _then 7703: _(
- L7677 := (0);
+ bitWidth := (0);
  _) _else _if (l4a1z@.f6.i = (1)) _then _(
  l4v1z := l4a1z@.f7;
  _if (l4v1z.i < (0)) _then _goto 7703;
  l4v1z := l4a1z@.f8;
  _if (l4v1z.i >= 48) _then _goto 7703;
  code(4СЧ5=BH,4ЗЧ5=,);
- L7677 := ((49) - l4v1z.i);
- _) _else _if (l4a1z@.f6.i = (2)) _then  L7677 := (15)
+ bitWidth := ((49) - l4v1z.i);
+ _) _else _if (l4a1z@.f6.i = (2)) _then  bitWidth := (15)
  _else  _if (l4a1z@.f6.i = (0)) _then _(
-   _if (l4a1z = boolType) _then L7677 := (1)
-   _else _if (l4a1z = charType) _then L7677 := (8)
+   _if (l4a1z = boolType) _then bitWidth := (1)
+   _else _if (l4a1z = charType) _then bitWidth := (8)
    _else _goto 7703;
  _) _else
   _goto 7703;
  _);
-(* Level 4 *) _proced P7751(_var l4a1z:integer; l4a2z, l4a3z:idptr);
+(* Level 4 *) _proced doFields(_var l4a1z:integer; l4a2z, l4a3z:idptr);
 _label  7776, 10065;
 _var l4v1z, l4v2z: idptr; l4v3z: word;
 l4v4z, l4v5z, l4v6z, l4id7z:idptr;
@@ -1583,20 +1586,20 @@ l4v13z, l4v14z: boolean;
 _(
  error( 'FLISТ', l5a1z );
 _);
-_( (* P7751 *)
+_( (* doFields *)
  l4v13z := true;
  l4v1z := _NIL;
 _repeat
  l4v8z := _NIL;
  gl53z := (3);
  getToken;
- _if (tokKind = (7)) _then _goto 7776 _else _goto 10065;
+ _if (tokKind = tkField) _then _goto 7776 _else _goto 10065;
  _repeat
  gl53z := (3);
  getToken;
- _if (tokKind <> (7)) _then flistErr(0);
+ _if (tokKind <> tkField) _then flistErr(0); (* no id *)
 7776:
- _if (curIdent <> _NIL) _then flistErr(1);
+ _if (curIdent <> _NIL) _then flistErr(1); (* id already defined in this record *)
  new(l4v2z,9);
  l4v2z@ := [tok, gl39z, idTabA[gl25z], l4a3z, 4, _NIL, ,l4a2z];
  idTabA[gl25z] := l4v2z;
@@ -1610,8 +1613,8 @@ _repeat
  l4v1z := l4v2z;
  getToken;
  _until lastChar <> ',';
- _if (lastChar <> ':') _then flistErr(2);
- P10351( (1), (0), l4v3z.id, (0) );
+ _if (lastChar <> ':') _then flistErr(2); (* need colon after a list of fields *)
+ parseType( (1), (0), l4v3z.id, (0) );
  l4v9z := l4v3z.id@.f5;
  gl77z := l4a2z;
  _while (l4v8z <> _NIL) _do _(
@@ -1623,10 +1626,10 @@ _repeat
 _until (lastChar <> ';');
 exit;
  10065:
- _if (tokKind <> (2)) _or (tok <> case) _then flistErr( (3) );
+ _if (tokKind <> tkWord) _or (tok <> case) _then flistErr( (3) ); (* no case *)
  gl53z := (3);
  getToken;
- _if (tokKind <> (7)) _then  flistErr( (4) );
+ _if (tokKind <> tkField) _then  flistErr( (4) ); (* after case should be a field or a type *)
  l4v12z := tok;
  l4v10z := gl25z;
  l4id7z := curIdent;
@@ -1640,10 +1643,10 @@ exit;
   l4v2z@.f5.id := l4v2z;
  getToken;
  _if (lastChar = ':') _then _(
-  _if (l4id7z <> _NIL) _then flistErr(11);
+  _if (l4id7z <> _NIL) _then flistErr(11); (* selector id already used *)
   l4v2z@.f2 := idTabA[l4v10z];
   idTabA[l4v10z] := l4v2z;
-  P10351( (2), (0), l4v3z.id, (0) );
+  parseType( (2), (0), l4v3z.id, (0) );
   l4v10z := 1;
  _) _else _(
   l4id7z := idTable[l4v10z];
@@ -1651,10 +1654,10 @@ exit;
   _while (l4id7z <> _NIL) _do _(
    _if (l4id7z@.f0 <> l4v12z) _then l4id7z := l4id7z@.f2
    _else _(
-    _if (l4id7z@.f4.i <> (0)) _then flistErr(12)
+    _if (l4id7z@.f4.i <> (0)) _then flistErr(12) (* no type id *)
     _else _(
      _if (l4id7z@.f6.i = (7)) _then l4id7z := l4id7z@.f3;
-     _if (l4id7z@.f6.i <> (0)) _then flistErr(13);
+     _if (l4id7z@.f6.i <> (0)) _then flistErr(13); (* must be a discrete type *)
     _);
     l4v3z.id := l4id7z;
     l4id7z := _NIL;
@@ -1665,7 +1668,7 @@ exit;
  _); (* 10206 *)
  l4v2z@.f6 := l4v3z;
  l4a1z := (l4a1z + l4v10z);
- _if (tokKind <> (2)) _or (tok <> of) _then flistErr( (6) );
+ _if (tokKind <> tkWord) _or (tok <> of) _then flistErr( (6) ); (* need "of" *)
  l4v1z := _NIL;
  l4v10z := l4a1z;
  _repeat
@@ -1675,7 +1678,7 @@ exit;
   _repeat
    l4v4z := l4v3z.id;
    P7520(l4v4z, l4v11z, false );
-   _if (l4v4z = _NIL) _then flistErr(-1);
+   _if (l4v4z = _NIL) _then flistErr(-1); (* bad or missing selector value *)
    new(l4v5z, 7);
    l4v5z@ := [0, l4v11z, _NIL, , 6, _NIL];
    _if (l4v6z = _NIL)
@@ -1692,21 +1695,21 @@ exit;
      _if (l4v11z < l4v12z) _then _(
       l4id7z := l4v4z;
       l4v4z := l4v4z@.f5.id;
-     _) _else flistErr( (8) );
+     _) _else flistErr( (8) ); (* repeated selector value *)
     _)
    _);  (*10276 *)
    _if (l4v1z = l4v4z)
    _then l4v1z := l4v5z
    _else l4id7z@.f5.id := l4v5z;
    getToken;
-   _if (lastChar <> '00000,') _and (lastChar <> ':') _then flistErr( (7) );
+   _if (lastChar <> '00000,') _and (lastChar <> ':') _then flistErr( (7) ); (* need comma or colon *)
    l4v14z := lastChar = ':';
    getToken;
 
   _until l4v14z;
-  _if lastChar <> '(' _then flistErr( 10 );
-  P7751(l4v9z.i, l4a2z, l4v6z );
-  _if (lastChar <> ')') _then flistErr( (9) );
+  _if lastChar <> '(' _then flistErr( 10 ); (* need open paren *)
+  doFields(l4v9z.i, l4a2z, l4v6z );
+  _if (lastChar <> ')') _then flistErr( (9) ); (* need close paren *)
   _if (l4v9z.i > l4a1z) _then  l4a1z := l4v9z.i;
 
   _while (l4v6z <> l4v2z) _do _(
@@ -1719,75 +1722,75 @@ exit;
  l4v2z@.f5.id := l4v1z;
 _);
 
-_( (* P10351 *)
+_( (* parseType *)
  getToken;
- l3v4z := false;
+ isPacked := false;
  _case tokKind _of
- 0: _( (* 10360 *)
- _if (lastChar = '(') _then _(
- l3v1z := _NIL;
- new(l3v2z, 9);
- l3v2z@ := [l3a2z, , , , 0, 1, 0];
+tk0: _( (* 10360 *)
+ _if (lastChar = oparen) _then _(
+ baseType := _NIL;
+ new(curType, 9);
+ curType@ := [l3a2z, , , , 0, 1, 0];
  _if (l3a2z <> (0)) _then _(
-   l3v2z@ := [, gl39z, idTable[l3a4z] ];
-   idTable[l3a4z] := l3v2z;
+   curType@ := [, gl39z, idTable[l3a4z] ];
+   idTable[l3a4z] := curType;
  _); (* 10402 *)
  l3v7z := (0);
- l3a3z := l3v2z;
+ l3a3z := curType;
  _repeat
  gl53z := (0);
  getToken;
- _if (tokKind <> (1)) _then typeErr( (1) );
+ _if (tokKind <> tkIdent) _then typeErr( (1) );
  _if gl60z _then  typeErr( (2) );
  new(l3v3z, 8);
- gl56z.i := l3v7z;
- P5226(l3v5z, false);
- l3v3z@ := [ tok, gl39z, idTable[gl25z], _NIL, (1), l3v2z, l3v5z];
+ curVal.i := l3v7z;
+ putConst(l3v5z, false);
+ l3v3z@ := [ tok, gl39z, idTable[gl25z], _NIL, (1), curType, l3v5z];
  idTable[gl25z] := l3v3z;
  l3v7z := l3v7z + 1;
- _if (l3v1z = _NIL) _then l3v2z@.f3 := l3v3z _else  l3v1z@.f7.id := l3v3z;
- l3v1z := l3v3z;
+ _if (baseType = _NIL) _then curType@.f3 := l3v3z _else  baseType@.f7.id := l3v3z;
+ baseType := l3v3z;
  getToken;
  _until lastChar <> ',';
- _if (lastChar <> ')') _then typeErr( (4) );
+ _if (lastChar <> cparen) _then typeErr( (4) );
  l3v3z@.f7.s := _NIL;
- l3v2z@.f7.i := l3v7z;
- l3v2z@.f8.i := (0);
+ curType@.f7.i := l3v7z;
+ curType@.f8.i := (0);
 _) _else _( (* 10460 *)
 _if (lastChar = '@') _then _(
- P10351( (1), (0), l3v1z, (0) );
+ parseType( (1), (0), baseType, (0) );
  new(l3a3z, 7);
- l3a3z@ := [l3a2z, gl39z, , l3v1z, 0, 1, 2];
+ l3a3z@ := [l3a2z, gl39z, , baseType, 0, 1, 2];
  _goto 11126;
 _); _goto 10527;
 _); 10503: getToken; exit;
   10505:
   getToken;
-  10507: l3a3z := l3v2z;
+  10507: l3a3z := curType;
   _if l3a2z = 0 _then _( exit; _goto 10527 _);
   new(l3v3z, 7);
-  l3v3z@ := [l3a2z, gl39z, idTable[l3a4z], l3v2z, 0, , 7];
+  l3v3z@ := [l3a2z, gl39z, idTable[l3a4z], curType, 0, , 7];
   idTable[l3a4z] := l3v3z;
   exit;
 10527:
-   l3v1z := _NIL;
-   P7520(l3v1z, l3v5z, true );
-   _if (l3v1z = _NIL) _then typeErr(13);
-   l3v7z := gl56z.i;
+   baseType := _NIL;
+   P7520(baseType, l3v5z, true );
+   _if (baseType = _NIL) _then typeErr(13);
+   l3v7z := curVal.i;
    getToken;
    _if (lastChar <> ':') _then typeErr(14);
    getToken;
-   P7520(l3v1z, l3v6z.a, true );
-   _if (l3v1z = _NIL) _then  typeErr( (15) );
-   l3v8z := gl56z.i;
-   _if (l3v1z <> intType) _and (l3v1z <> charType) _and (l3v1z@.f3 = _NIL)
-   _or (l3v1z@.f6.i <> (0)) _then typeErr( (16) );
-   new(l3v2z, 9);
-   l3v2z@ := [0, gl39z, _NIL, l3v1z, 0, 1, 1, l3v7z, l3v8z];
-   _if (modeT) _then  P5340( l3v2z, false);
+   P7520(baseType, l3v6z.a, true );
+   _if (baseType = _NIL) _then  typeErr( (15) );
+   l3v8z := curVal.i;
+   _if (baseType <> intType) _and (baseType <> charType) _and (baseType@.f3 = _NIL)
+   _or (baseType@.f6.i <> (0)) _then typeErr( (16) );
+   new(curType, 9);
+   curType@ := [0, gl39z, _NIL, baseType, 0, 1, 1, l3v7z, l3v8z];
+   _if (modeT) _then  P5340( curType, false);
    _goto 10505
 _);
- 1: _( (* 10613 *)
+tkIdent: _( (* 10613 *)
  _if (curIdent = _NIL) _then _(
   _if gl57z  _and (l3a2z = (0)) _then _(
    new(l3a3z, 7);
@@ -1802,84 +1805,84 @@ _);
  _if (l3a1z = (1)) _and (curIdent@.f6.i = (6)) _then  typeErr( (20) );
  _if (l3a1z = (2)) _and (curIdent@.f6.i <> (0)) _and (curIdent@.f6.i <> (1))
  _then typeErr(21 );
- l3v2z := curIdent;
+ curType := curIdent;
  _goto 10505;
  _);
- 2: _( (* 10666 *)
+tkWord: _( (* 10666 *)
  _if (l3a1z = (2)) _then typeErr( 22 );
  _if (tok = packed) _then _(
-   l3v4z := true;
+   isPacked := true;
    getToken;
-   _if (tokKind <> (2)) _then typeErr( (40) );
+   _if (tokKind <> tkWord) _then typeErr( (40) );
  _);
  _if (tok = record) _then _(
- new(l3v1z, 7);
+ new(baseType, 7);
  l3v7z := (0);
- l3v1z@ := [ l3a2z, , , , (0), , (5)];
- l3v1z@ := [, gl39z, idTable[l3a4z] ];
- idTable[l3a4z] := l3v1z;
- gl77z := l3v1z;
- P7751(l3v7z, l3v1z, _NIL );
- _if (tokKind <> (2)) _or (tok <> end) _then  typeErr( 23 );
- l3v1z@.f5.i := l3v7z;
- l3a3z := l3v1z;
+ baseType@ := [ l3a2z, , , , (0), , (5)];
+ baseType@ := [, gl39z, idTable[l3a4z] ];
+ idTable[l3a4z] := baseType;
+ gl77z := baseType;
+ doFields(l3v7z, baseType, _NIL );
+ _if (tokKind <> tkWord) _or (tok <> end) _then  typeErr( 23 );
+ baseType@.f5.i := l3v7z;
+ l3a3z := baseType;
  _goto 10503;
  _);
  _if (tok = array) _then _(
   getToken;
   _if (lastChar <> '[') _then typeErr( 24 );
-  l3v2z := _NIL;
+  curType := _NIL;
   _repeat
-  P10351(2, 0, l3v1z, 0);
+  parseType(2, 0, baseType, 0);
   new(l3v3z, 9);
-  l3v3z@ := [l3a2z, , l3v2z, , 0, , 4, l3v1z];
-  _if (l3v2z = _NIL) _then_(
+  l3v3z@ := [l3a2z, , curType, , 0, , 4, baseType];
+  _if (curType = _NIL) _then_(
    l3a3z := l3v3z;
    _if (l3a2z <> (0)) _then _(
     l3v3z@ := [, gl39z, idTable[l3a4z] ];
     idTable[l3a4z] := l3v3z;
    _)
- _) _else l3v2z@.f3 := l3v3z;
- l3v2z := l3v3z;
+ _) _else curType@.f3 := l3v3z;
+ curType := l3v3z;
  _until (lastChar <> ',');
  _if (lastChar <> ']') _then typeErr(25);
  getToken;
- _if (tokKind <> (2)) _or (tok <> of) _then typeErr(26);
- P10351( (1), (0), l3v1z, (0) );
- l3v3z@.f3 := l3v1z;
- l3v7z := l3v1z@.f5.i;
+ _if (tokKind <> tkWord) _or (tok <> of) _then typeErr(26);
+ parseType( (1), (0), baseType, (0) );
+ l3v3z@.f3 := baseType;
+ l3v7z := baseType@.f5.i;
  _goto 11022;
  _repeat
- l3v2z := l3v2z@.f2;
+ curType := curType@.f2;
  11022:
- l3v3z := l3v2z@.f7.id;
+ l3v3z := curType@.f7.id;
  _if l3v3z@.f6.i = 1
  _then l3v8z := l3v3z@.f8.i - l3v3z@.f7.i + 1
  _else  typeErr( (28) );
- _if l3v7z = 1 _then l3v2z@.f8.i := (0)
+ _if l3v7z = 1 _then curType@.f8.i := (0)
  _else _(
    l3v6z.i := l3v7z;
- P5215( l3v6z.i, gl56z.i );
- P5226( l3v6z.a, false );
- l3v2z@.f8 := l3v6z;
+ P5215( l3v6z.i, curVal.i );
+ putConst( l3v6z.a, false );
+ curType@.f8 := l3v6z;
  _);
  (*=m+*)
  l3v7z := (l3v7z * l3v8z);
- l3v2z@.f5.i := l3v7z;
- _until (l3v2z = l3a3z);
+ curType@.f5.i := l3v7z;
+ _until (curType = l3a3z);
  exit
  _); (* 11060 *)
  _if (tok = file) _then _(
   getToken;
- _if (tokKind <> (2)) _or (tok <> of) _then typeErr(29);
- P10351( (1), (0), l3v1z, (0) );
+ _if (tokKind <> tkWord) _or (tok <> of) _then typeErr(29);
+ parseType( (1), (0), baseType, (0) );
  l3v8z := 22;
- _if (l3v4z ) _then  l3v7z :=   L7677( l3v1z ) _else  l3v7z := (0);
+ _if (isPacked ) _then  l3v7z :=   bitWidth( baseType ) _else  l3v7z := (0);
  _if (l3v7z <> (0)) _and (l3v7z <= 24) _then 
  l3v8z := (trunc(48 / l3v7z)) + l3v8z
  _else l3v7z := (0);
  new(l3a3z, 8);
- l3a3z@ := [0, , , l3v1z, 0, l3v8z, 6, l3v7z];
+ l3a3z@ := [0, , , baseType, 0, l3v8z, 6, l3v7z];
  11126:
  _if (l3a2z <> (0)) _then _(
  l3a3z@ := [l3a2z, gl39z, idTable[l3a4z]];
@@ -1890,18 +1893,18 @@ _); (* 11140 *)
 _if (tok = set) _then _(
  getToken;
  _if (tok <> of) _then  typeErr(-1);
-  P10351( (2), (0), l3v1z, (0) );
- _if ((l3v1z@.f6.i <> (1)) _or (l3v1z@.f7.i < (0)) _or (l3v1z@.f8.i > (47))) _and
-  (((l3v1z@.f1.i <> (0)) _or _not typeCheck( l3v1z, boolType)) _and
-  ((l3v1z@.f1.i = (0)) _or (l3v1z@.f7.i > (47))) _or (l3v1z@.f6.i <> (0))) _then 
+  parseType( (2), (0), baseType, (0) );
+ _if ((baseType@.f6.i <> (1)) _or (baseType@.f7.i < (0)) _or (baseType@.f8.i > (47))) _and
+  (((baseType@.f1.i <> (0)) _or _not typeCheck( baseType, boolType)) _and
+  ((baseType@.f1.i = (0)) _or (baseType@.f7.i > (47))) _or (baseType@.f6.i <> (0))) _then 
     P4142( 'ТИП', (0) );
-  l3v2z := setType;
+  curType := setType;
  _goto 10507;
  _);
   typeErr( (33) );
  _);
-  3, 4, 5, 6: _goto 10527;
-  7: sysErr(3)
+  tkInt, tkStr, tkReal, tkChar: _goto 10527;
+  tkField: sysErr(3)
  _end;
  sysErr(4);
 _);
@@ -1916,8 +1919,8 @@ _var l3v1z, l3v2z:idptr;
  gl53z := (0);
  l3v5z := (0);
  getToken;
- _if (tokKind = (1)) _then _goto 11266;
- _if (tokKind <> (2)) _then P4142( 'ФОРПАР', (0) );
+ _if (tokKind = tkIdent) _then _goto 11266;
+ _if (tokKind <> tkWord) _then P4142( 'ФОРПАР', (0) );
  _if (tok = var) _then l3v5z := (1)
  _else _if (tok = functi) _then l3v5z := (2)
  _else _if (tok <> 'РRОСЕD') _then P4142( 'ФОРПАР', (1) )
@@ -1927,7 +1930,7 @@ _var l3v1z, l3v2z:idptr;
  getToken;
  11266:
  l3a1z@.f10.i := l3a1z@.f10.i + 1;
- _if (tokKind <> (1)) _or gl60z _then P4142( 'ФОРПАР', (2) );
+ _if (tokKind <> tkIdent) _or gl60z _then P4142( 'ФОРПАР', (2) );
  _case l3v5z _of
  0: _( new(l3v1z, 8); l3v1z@.f4.i := 1; _);
  1: _( new(l3v1z, 8); l3v1z@.f4.i := 2; _);
@@ -1945,7 +1948,7 @@ _until (lastChar <> ',');
  _if (l3v5z = (3)) _then l3v1z := _NIL
  _else _(
  _if (lastChar <> ':') _then P4142( 'ФОРПАР', (3) );
- P10351( (0), (0), l3v1z, (0) );
+ parseType( (0), (0), l3v1z, (0) );
  l3v7z := l3v1z@.f6.i;
  _if (l3v5z = (0)) _then l3v4z := l3v1z@.f5.i;
  _if ((l3v5z = (0)) _and (l3v4z <> (1)))
@@ -1970,11 +1973,11 @@ _until (lastChar <> ',');
  getToken;
  l3v2z@.f3 := l3a1z;
 _);
-(* Level 3 *) _proced P11450(l3a1z:pstr; l3a2z, l3a3z:integer);
+   (* Level 3 *) _proced P11450(l3a1z:pstr; l3a2z:integer; l3a3z:alfa);
 _var l3v1z:pstr; _(
  l3v1z := l3a1z;
  _while (l3v1z <> _NIL) _do _(
- _if (l3v1z@.f4.i = l3a2z) _then l3v1z@.f4.i := l3a3z;
+ _if (l3v1z@.f4.i = l3a2z) _then l3v1z@.f4.a := l3a3z;
  l3v1z := l3v1z@.f0.s;
  _)
 _);
@@ -2069,7 +2072,7 @@ _);
 _);
 25:l3v2z@ := [, , gl39z, 'ИК', l2v11z];
 26:l3v2z@ := [, , 0, 0, 0];
-27: _( l3v2z@.f3 := 'СМ'; P5226( l3v2z@.f4, false); l3v2z@.f2 := gl44z _);
+27: _( l3v2z@.f3 := 'СМ'; putConst( l3v2z@.f4, false); l3v2z@.f2 := gl44z _);
 28: l3v2z@:= [, , gl44z, 'ЛУ', gl41z]
 _end; (* 12127 *)
 _);
@@ -2293,8 +2296,8 @@ _);
  _if (l3a1z.f3.id = intType) _then _(
  _if (l3a1z.f0.i = (0)) _then _(
    rval := L7314( l3a1z.f1.a);
-   gl56z := ;
-   P5226( l3a1z.f1.a, false);
+   curVal := ;
+   putConst( l3a1z.f1.a, false);
  _) _else _(
   _if (l3a1z.f0.i <> (3)) _then P11512( (3), l3a1z );
   P11512( 18, l3a1z );
@@ -2382,7 +2385,7 @@ _var l3v1z:alfa; l3v2z:integer; l3v3z:six; _(
    3: 
    _if (l3a3z.f5.i = l3a2z.f5.i) _then _(
     _if (l3a3z.f5.i = (0)) _then _(
-     P11450( l3a3z.f4.s, l3a3z.f1.i, l3a2z.f1.i );
+     P11450( l3a3z.f4.s, l3a3z.f1.i, l3a2z.f1.a );
      13462:
      P12665( l3a2z, l3a3z );
      l3a2z.f4 := l3a3z.f4;
@@ -2412,7 +2415,7 @@ _var l3v1z:alfa; l3v2z:integer; l3v3z:six; _(
 _);
 (* Level 3 *) _proced L13566(l3a1z:pstr);
  _(
- _if (gl42z.i <> (0)) _then l3a1z@.f0 := gl42z
+ _if (gl42z <> '0') _then l3a1z@.f0.a := gl42z
  _else _(
    TNL(l3a1z@.f0.a);
    P4357( (0), l3a1z@.f0.a );
@@ -2432,8 +2435,8 @@ _var l3v1z:idptr; l3v2z:alfa; _(
  mapia( l2v28z, l3v2z );
  L3656( '14ПА', l3v2z );
  _if (l3a2z) _then L5312( l3a1z@.f0 )
-_else  gl41z.a := 'ВСS';
- L3656( '15ПА', gl41z.a );
+_else  gl41z := 'ВСS';
+ L3656( '15ПА', gl41z );
  L3667( '16ПВЩП' );
  _) _else _select (* ineff *)
   (l3v1z = intType): _( l3v2z := '12ПА5'; _goto 13625 _);
@@ -2451,8 +2454,8 @@ _else  gl41z.a := 'ВСS';
  mapia( l2v28z, l3v2z );
  L3656( '14ПА', l3v2z );
  _if l3a2z _then  L5312( l3a1z@.f0 )
- _else gl41z.a := 'ВСS';
- L3656( '15ПА', gl41z.a );
+ _else gl41z := 'ВСS';
+ L3656( '15ПА', gl41z );
  L3667( '16ПВЩП' );
  putInsn( '17СЧ' );
  _);
@@ -2507,10 +2510,10 @@ _var l4v1z:alfa; l4v2z:alfa; l4v3z, l4v4z:alfa; l4v5z:idptr; l4v6z:integer; _(
   l3v1z.f4.s@ := [, , l4a1z@.f1, , l4a1z@.f8 ];
  _) _else _(
  _if (l4a1z@.f6.i = (0)) _then _(
- _if (gl40z.i = (0)) _then _(  gl56z.i := (2); P5226( gl40z.a, false ) _);
+ _if (gl40z = '0') _then _(  curVal.i := (2); putConst( gl40z, false ) _);
  gl145z[14] := 'ИА'; gl145z[16] := 'ИА'; gl145z[13] := 'ИА'; (* ineff *)
  TNL(l4v1z); TNL(l4v2z);
- P4357( (1), l4v1z ); L3703;
+ P4357( (1), l4v1z ); align;
  l4a1z@.f6.a := l4v2z;
  l4v5z := l4a1z@.f7.id;
  L3721( l4v2z ); TNL(l4v4z); L3636; ГГ( '12ПА' );
@@ -2524,7 +2527,7 @@ _var l4v1z:alfa; l4v2z:alfa; l4v3z, l4v4z:alfa; l4v5z:idptr; l4v6z:integer; _(
  _if _not (l4a1z@.f10.i <= (1)) _then  ГГ( l4v2z );
  putSep; L3636; ГГ( '16ПАВП' ); ГГ( (6) );
  putSep; L3636; ГГ( 'ПБ' ); ГГ( l4a1z@.f9.a );
- L3703; ГГ( 'С;' ); ГГ( l4v4z );
+ align; ГГ( 'С;' ); ГГ( l4v4z );
  output@ := ':';
  put(output);
 _if (l4v5z <> _NIL) _then_(
@@ -2572,7 +2575,7 @@ _( (* P14226 *)
     gl53z := (2);
     getToken;
     l3v1z.f4.s := _NIL;
-    _if (tokKind = (1))  _and (curIdent <> _NIL) _and (curIdent@.f4.i = (3)) _then _(
+    _if (tokKind = tkIdent)  _and (curIdent <> _NIL) _and (curIdent@.f4.i = (3)) _then _(
       l3v17z := curIdent@.f5.id;
       l3v19z := (3);
       _if (l3v17z = _NIL) _then _(
@@ -2634,7 +2637,7 @@ _( (* P14226 *)
     _); (* 14474 *)
     _if _not l3v10z _then _(
       _if _not (l3v19z = (3)) _then  l3v13z := l3v19z;
-      gl56z.i := l3v13z;
+      curVal.i := l3v13z;
       P11512( 27, l3v1z);
     _) _else  l3v16z := l3v16z@.f3;
     _if l3v8z _and (l3v14z <> (1)) _then _(
@@ -2699,9 +2702,9 @@ _);
  gl53z := (2);
  getToken;
  L14707 := true;
- _if _not ((tokKind <> (1)) _or (curIdent = _NIL)) 
+ _if _not ((tokKind <> tkIdent) _or (curIdent = _NIL)) 
  _and (_not ((curIdent@.f4.i <> 1) _or (curIdent@.f3 = _NIL)) _or (curIdent@.f4.i = (2)))
- _or (tokKind = (7)) _then L16714( l3a1z )
+ _or (tokKind = tkField) _then L16714( l3a1z )
  _else L14707 := false;
  _);
 
@@ -2748,8 +2751,8 @@ l3v29z, l3v30z:integer; l3v31z:six; _(
      l3v1z.f4 := l3v7z.f4;
    _);
    _if (l3a1z = (0)) _then _(
-     gl56z.b := l3v24z;
-     P5226(l3v25z, false );
+     curVal.b := l3v24z;
+     putConst(l3v25z, false );
      mapai( l3v25z, l3v23z);
      _if _not l3v19z _or ((l3v22z + l3v20z) <> 48) _then P12422('10', 'ЛУ', chr(l3v23z), l3v1z );
    _);
@@ -2762,14 +2765,14 @@ l3v29z, l3v30z:integer; l3v31z:six; _(
        l3v26z := true;
        l3v30z :=   L7314( l3v1z.f1.a );
        l3v30z := shift(l3v30z, l3v21z);
-       gl56z := ;
-       P5226(l3v28z, false );
+       curVal := ;
+       putConst(l3v28z, false );
        l3v1z.f1.a := l3v28z;
      _);
      l3v24z := shift(l3v24z, l3v21z);
      l3v24z := [0..47] - l3v24z;
-     gl56z := ;
-     P5226(l3v27z, false );
+     curVal := ;
+     putConst(l3v27z, false );
    _);
    _if l3v26z _and l3v19z _and (l3a2z.f4.s = _NIL) _then _(
      l3v31z := l3a2z;
@@ -2807,7 +2810,7 @@ l3v29z, l3v30z:integer; l3v31z:six; _(
      putInsn( '15ЗЧ' );
    _) _else (sel) _(
      L12520(l3v1z);
-     gl56z.b := l3v24z;
+     curVal.b := l3v24z;
      P11512(27, l3v1z );
      P11512( 19, l3v1z );
      L12520( l3v7z );
@@ -2899,8 +2902,8 @@ _( (* stdCall *)
   14: (* 15637 *) 
     _if (l3a1z.f2.i = (0)) _then _(
       _if (l3a1z.f1.i = (7)) _then _(
-        gl56z.a := chr(172B);
-        P5226(l3v4z, false );
+        curVal.a := chr(172B);
+        putConst(l3v4z, false );
         P11512( (0), l3a1z );
         l3a1z.f4.s@.f0 := [, , 1, , 7];
         P11512( (2), l3a1z );
@@ -2933,8 +2936,8 @@ _( (* stdCall *)
     P11512( 1, l3a1z ); l3a1z.f4.s@.f3.a := 'АВ';
   _);
   22: _(
-    gl56z.a := chr(175B);
-    P5226(l3v4z, false );
+    curVal.a := chr(175B);
+    putConst(l3v4z, false );
     _if (l3a1z.f2.i = (0)) _then _(
       _if (l3a1z.f1.i = (7)) _then _(
         P11512( (0), l3a1z );
@@ -3044,8 +3047,8 @@ _( (* P16240 *)
    (* 16373 *) _until lastChar <> comma;
    _if _not (lastChar = cbrack) _then  L15362(10); (* no closing bracket *)
    _if (l4v14z <> []) _then _(
-     gl56z.b := l4v14z;
-     P5226( l3v4z, false );
+     curVal.b := l4v14z;
+     putConst( l3v4z, false );
    _);
    _if l3v3z _then _(
      _if _not (l4v14z = []) _then  l3a1z.f1.a := l3v4z;
@@ -3060,7 +3063,7 @@ _)_);
 
 _( (* L16431 *)
   _case tokKind _of
-  2: _( (* 16433 *)
+  tkWord: _( (* 16433 *)
     _if (tok <> nil) _then _(
       _if (tok = not) _then _goto 16503 _else L15362( (1) ); (* wrong keyword *)
     _) _else _(
@@ -3073,7 +3076,7 @@ _( (* L16431 *)
       _if (l3v1z = boolType) _and (l3v4z <> '12') _then  l3a1z.f5.i := (1);
     _)
   _); 
-  0: _(
+  tk0: _(
   _if (lastChar = oparen) _then _(
     L20307( l3a1z );
     _if _not (lastChar = cparen) _then  L15362( (3) ); (* need closing paren *)
@@ -3087,9 +3090,9 @@ _( (* L16431 *)
       exit
     _) _else _if (lastChar = obrack) _then P16240 _else  L15362( (5) ); (* wrong delimiter *)
   _);
-  3, 4, 5, 6: _goto 16441;
-  7: _goto 16534;
-  1: _(
+  tkInt, tkStr, tkReal, tkChar: _goto 16441;
+  tkField: _goto 16534;
+  tkIdent: _(
     _if (curIdent = _NIL) _then L15362( (6) ) (* ident not defined *)
     _else _(
     _if (curIdent@.f4.i = (2)) _then _(
@@ -3181,7 +3184,7 @@ _);
 
 _( (* L16714 *)
 l3v25z := true;
- _if (tokKind = (7)) _then _(
+ _if (tokKind = tkField) _then _(
    l3v26z := ref(gl419z[gl27z]);
    l3v1z := l3v26z@.f3.id;
    l3v20z := l3v26z@.f0.i;
@@ -3204,7 +3207,7 @@ l3v25z := true;
      _until l3v17z = _NIL;
    _); (* 16765 *)
    _goto 17042;
- _) _else (* 16766 *) _if (tokKind <> (1)) _then  L16626( (0) ); (* not a var or a field *)
+ _) _else (* 16766 *) _if (tokKind <> tkIdent) _then  L16626( (0) ); (* not a var or a field *)
  l3v1z := curIdent@.f5.id;
  l3v20z := (1);
  l3v10z := curIdent@.f6.a;
@@ -3230,7 +3233,7 @@ l3v25z := true;
    gl53z := (3);
    gl77z := l3v1z;
    getToken;
-   _if (tokKind <> (7)) _or (curIdent = _NIL) _then L16626( (1) ); (* not a field *)
+   _if (tokKind <> tkField) _or (curIdent = _NIL) _then L16626( (1) ); (* not a field *)
 17042:
    l3v25z := false;
    P3606( l3v10z, curIdent@.f8.i );
@@ -3275,7 +3278,7 @@ l3v25z := true;
        P12143(22, l3v4z, l3v3z@.f0 );
      _);
      _if l3v23z <> 1 _then _(
-       gl41z := l3v1z@.f8;
+       gl41z := l3v1z@.f8.a;
        L12520( l3v4z );
        P11512( 5, l3v4z );
        _if l3v3z@.f7.i >= 0 _then l3v4z.f4.pi@ := [, , 0, 'МР', '30'];
@@ -3388,13 +3391,13 @@ _( (* L17503 *)
 17511:
   _if lastChar = semi _then exit;
   
-  _if tokKind = 0 _then _(
+  _if tokKind = tk0 _then _(
     _if lastChar = star _then l3v1z := 0
     _else _if lastChar = slash _then l3v1z := 1
     _else _if lastChar = chr(81) _then  l3v1z := 2
     _else exit;
   _) _else _( (* 17530 *)
-    _if tokKind = 2 _then _(
+    _if tokKind = tkWord _then _(
       _if tok = div _then l3v1z := 3
       _else _if tok = mod _then l3v1z := 4
       _else _if tok = and _then l3v1z := 2
@@ -3450,8 +3453,8 @@ _( (* L17503 *)
              P12741( 'СД', true, l3a1z, l3v5z, (1) );
              _exit case;
            _) _else _(
-             gl56z.i := F3575( l3v2z );
-             P5226( l3v5z.f1.a, false );
+             curVal.i := F3575( l3v2z );
+             putConst( l3v5z.f1.a, false );
              P12741( 'АУ', true, l3a1z, l3v5z, (1) );
              _exit case;
            _)
@@ -3471,8 +3474,8 @@ _( (* L17503 *)
              code(УИ7=,);
              l3v2z := (0);
              code(L20014:СД/-1/=ЦС13,7СА1=7И1L20014,);
-             gl56z := ;
-             P5226( gl41z.a, false );
+             curVal := ;
+             putConst( gl41z, false );
              L12520( l3a1z );
              P11512( (28), l3a1z );
              _exit case;
@@ -3512,14 +3515,14 @@ _( (* L20070 *)
    P11512( (6), l3a1z );
    _if _not (l3a1z.f3.id <> realType) _then  l3a1z.f4.s@.f1.i := (3);
  _);
-20131: _if (tokKind = (0)) _then _(
+20131: _if (tokKind = tk0) _then _(
    _if (lastChar = semi) _then exit
    _else _if (lastChar = plus) _then l3v4z := (0)
    _else _if (lastChar = minus) _then l3v4z := (1)
    _else _if (lastChar = chr(80)) _then l3v4z := (2)
    _else exit
  _) _else _( (* 20150 *)
-   _if (tokKind <> (2)) _then exit
+   _if (tokKind <> tkWord) _then exit
    _else _if (tok = or) _then l3v4z := (2)
    _else exit
  _);
@@ -3562,7 +3565,7 @@ _(
  _if gl62z _then _(  gl53z := (2); getToken _) _else gl62z := true;
  L20070( l3a1z );
 20317:
- _if (tokKind = (0)) _then _(
+ _if (tokKind = tk0) _then _(
    _if (lastChar = semi) _then exit
    _else _if (lastChar = eq) _then l3v1z := (1)
    _else _if (lastChar = neq) _then l3v1z := (0)
@@ -3571,10 +3574,10 @@ _(
    _else _if (lastChar = gt) _then l3v1z := (4)
    _else _if (lastChar = chr(79)) _then l3v1z := (3)
    _else exit
- _) _else _if (tokKind = (2)) _and (tok = in) _then l3v1z := (6) _else exit;
+ _) _else _if (tokKind = tkWord) _and (tok = in) _then l3v1z := (6) _else exit;
  gl53z := (2);
  getToken;
- _if _not ((l3v1z <> (6)) _or (tokKind <> (1))
+ _if _not ((l3v1z <> (6)) _or (tokKind <> tkIdent)
  _or (curIdent = _NIL) _or (curIdent@.f4.i <> (0))) _then _(
    _if _not (curIdent@.f6.i <> 7) _then  curIdent := curIdent@.f3;
    _if _not (l3a1z.f3.s@.f6.i <> 6) _then  P4142( expr, (20) );
@@ -3702,7 +3705,7 @@ l3v26z, l3v27z, l3v28z, l3v29z, l3v30z, l3v31z, l3v32z:integer;
 (* Level 4 *) _function L20765(l4a1z:alfa):boolean;
 _(
  L20765 := true;
- _if (tokKind = (1)) _or (l4a1z = '1') _then _(
+ _if (tokKind = tkIdent) _or (l4a1z = '1') _then _(
    l3v11z := l2v27z;
    l3v7z := (1);
  _while (l3v11z <> _NIL) _do _(
@@ -3726,19 +3729,20 @@ _(
       P4357( 11, l3v2z );
       write('12ПВFАМ');
       putSep;
-      L3703;
+      align;
     _);
     L4225( (1) );
   _) _else  P4142( l3v6z, (2) );
  _) _else L20765 := false;
 _);
-(* Level 4 *) _proced P21356;
-_label 21410, 21412, 21420, 21731;
+(* Level 4 *) _proced standProc;
+_label 21410, 21412, 21420, 21731, 22054, 22177, 22235, 22254, 22500;
 _const zun='UN';zia='IА';zai='АI';ztnl='ТNL';zgg='ГГ';zga='ГА';zyaga='ЯГА';ziaca='1ИАСА';
 zpvro='16ПВRО';zpvpo='16ПВРО';zpvgi='16ПВGI';zpvri='15ПВRI';zpvpr='16ПВРR';zpvsl='16ПВSL';
+(*=a1*)wri='WRITE'(*=a0*);
 _var l4v1z:integer; l4v2z:alfa;
 l4v3z:alfa;
-l4v4z, l4v5z, l4v6z:integer;
+l4v4z:alfa; l4v5z:integer; l4v6z:alfa;
 l4v7z, l4v8z, l4v9z, l4v10z, l4v11z:boolean;
 
 (* Level 5 *) _proced L21070(l5a1z:integer);
@@ -3753,7 +3757,7 @@ _var l5v1z:alfa; _(
     L20307( l3v20z );
     l4v11z := false;
     _if ((l3v20z.f3.s@.f6.i <> (1))  _or (l3v20z.f3.s@.f3.id <> intType))
-    _and _not (l3v20z.f3.id = intType) _then  P4142((*=a1*)'WRIТЕ'(*=a0*), (0) );
+    _and _not (l3v20z.f3.id = intType) _then  P4142(wri, (0) );
     L12635( l3v20z );
  _) _else _(
    _if l5a2z _then exit;
@@ -3809,7 +3813,7 @@ _(
 (* Level 5 *) _proced L21277;
 _(
   getToken;
-  _if (tokKind <> (1)) _or (curIdent = _NIL) _then L21070( (9) );
+  _if (tokKind <> tkIdent) _or (curIdent = _NIL) _then L21070( (9) );
 _);
 
 (* Level 5 *) _proced P21311(_var l5a1z:six; l5a2z:idptr);
@@ -3817,7 +3821,7 @@ _label 21335;
  _(
  gl53z := (2);
  getToken;
- _if (tokKind = (1)) _then _(
+ _if (tokKind = tkIdent) _then _(
    _if (curIdent = _NIL) _then _(
      L21070( 16 );
    _) _else _(
@@ -3831,7 +3835,7 @@ _label 21335;
  _) _else _goto 21335;
 _);
 
-_( (* P21356 *)
+_( (* standProc *)
  l4v1z := ord(l3v12z@.f3);
  l3v6z := l3v12z@.f0;
  l4v10z := lastChar = oparen;
@@ -3893,7 +3897,7 @@ _( (* P21356 *)
      _if (curIdent = outFile) _then P4142( l3v6z, (17) ) _else _goto 21420;
    _);
  _);
- 4: _(
+ 4, 21: _(
    P21311( l3v14z, _NIL );
    l4v7z := true;
    gl33z := gl33z + 1;
@@ -3966,9 +3970,246 @@ _( (* P21356 *)
    _);
    modeT := l4v8z;
    _goto 21412;
+ _);
+ 7: _(
+   _if modeF _and (l2v12z <> '0') _then _(
+     putInsn('12ПА2' );
+     L3656( '15ПА', l2v12z );
+     mapia( lineNum, gl41z);
+     L3656( '14ПА', gl41z );
+     L3667( '16ПВЖЬ' );
+   _);
+   l4v2z := tok;
+   tok := '0';
+   l4v7z :=   L20765( '1' );
+   tok := l4v2z;
+ _);
+ 8: L3667( '16ПВРR' );
+ 9: _( L3667( '16ПВПБ' ); gl145z[13] := 'ПА' _);
+ 10: _( l4v2z := 'IА'; l3v12z := _NIL; l3v13z := alfaType;
+22054:
+   L20307( l3v14z );
+   _if (l3v12z <> _NIL) _and _not typeCheck( l3v14z.f3.id, l3v12z) _then  L21070( 12 );
+   _if _not (lastChar = comma) _then  L21070( 13 );
+   P21311( l3v20z, l3v13z );
+   L12635( l3v14z );
+   ГГ( '16ПВ' );
+   L3667( l4v2z );
+   L12475( l3v20z );
+   _goto 21412;
+ _);
+ 11: _( l4v2z := 'АI'; l3v12z := alfaType; l3v13z := intType; _goto 22054 _);
+ 12: _(
+   P21311( l3v14z, alfaType );
+   _if (l3v14z.f3.id = alfaType) _then _(
+     P4357( 12, 'ТNL' );
+     L12475( l3v14z );
+     _goto 21412;
+   _) _else _(
+     L12520( l3v14z );
+     L3667( '16ПВSL' );
+     _goto 21412;
+   _)
+ _);
+ 13: _(
+   l4v2z := 'ГГ';
+   _repeat 
+     L20307( l3v14z );
+     L12520( l3v14z );
+     P12143( (15), l3v14z, l4v2z );
+     L3732( l3v14z.f4.pi );
+   _until (lastChar <> comma);
+   _goto 21412;
+ _);
+ 14: _( l4v2z := 'ГА'; l3v12z := charType; l3v13z := l3v12z; _goto 22054 _);
+ 15: _( l4v2z := 'ЯГА'; l3v12z := alfaType; l3v13z := l3v12z; _goto 22054 _);
+ 16: _(
+   _if (input@ = eq) _then _( get(input); _if leftInsn _then  ГГ( 'ИА=' ) _)
+   _else align;
+   _repeat
+   _goto 22177;
+   _repeat
+     get(input);
+22177:
+     _if (input@ = endl) _then _( lineNum := (lineNum + (1)); gl23z := (0) _)
+     _else _( MAPГA(input@, output@); put(output) _);
+   _until (input@ _IN [comma,eq,semi,chr(26),colon]);
+   leftInsn := input@ <> eq;
+   get(input);
+   _until (input@ = cparen);
+   get(input);
+   gl42z := '0';
+   getToken;
+ _);
+ 17: _(
+   P21311( l3v14z, _NIL );
+   putInsn( '1ИАСА' );
+   putInsn( gl37z );
+   L12475( l3v14z );
+22235:
+   _if (l3v14z.f3.s@.f6.i <> (2)) _then L21070( (6) );
+   _goto 21412;
+ _);
+ 18: _(
+   P21311( l3v14z, _NIL );
+   L12635( l3v14z );
+   putInsn( '1ИАСА' );
+   putInsn( 'ЗЧ' );
+   _goto 22235;
+ _);
+ 19: 22254: _(
+   l4v7z := true;
+   l4v9z := ;
+   _repeat
+   gl53z := (2);
+   gl58z := true;
+   getToken;
+   gl58z := false;
+   l4v6z := 'СМ';
+   _if (tokKind = tkStr) _then _(
+     l4v2z := tok;
+     getToken;
+     _if (lastChar <> colon) _and l4v9z _then _(
+       mapia( gl30z, l4v3z);
+       P4511( (6), l4v2z, l4v3z );
+     _) _else _(
+       P21077( gl30z, false );
+       mapia( gl30z, l4v3z);
+       ГГ('12ПА' ); ГГ( l4v3z ); putSep;
+       _if modeX _then _(  ГГ( '10ИА' ); putSep; _);
+       ГГ( '11ПА' ); ГГ( l4v2z ); putSep;
+       l4v6z := gl37z;
+       L21145( 'WS' );
+     _)
+   _) _else _( (* 22324 *)
+     gl62z := false;
+     L20307( l3v14z );
+     _if l4v7z _and (l3v14z.f3.s@.f6.i = (6)) _then _(
+       _if (l3v14z.f2.i <> (0)) _then _(
+         _if typeCheck( l3v14z.f3.id, textFile) _then _(
+           l4v9z := false;
+           l4v4z := l3v14z.f2.a;
+           l4v5z := l3v14z.f1.i;
+           l4v10z := l3v14z.f5.i = 0;
+         _) _else P4142(wri, (3) );
+       _) _else _(
+         _if _not (l3v14z.f1.i <> (7)) _then  P4142(wri, (1) );
+       _)
+     _) _else _( (* 22363 *)
+       _if (l3v14z.f3.s@.f6.i = (1)) _then  l3v14z.f3 := l3v14z.f3.s@.f3;
+       _if (l3v14z.f3.id = charType) _then P21247( (1), 'WС' )
+       _else _if (l3v14z.f3.id = alfaType) _then P21247( (6), 'WА' )
+       _else _if (l3v14z.f3.id = boolType) _then P21247( (6), 'WВ' )
+       _else _if (l3v14z.f3.id = intType) _then P21247( 10, 'WI' )
+       _else _if (l3v14z.f3.id = realType) _then _( P21077( 14, false ); P21247( (4), 'WR' ) _)
+       _else _if (l3v14z.f3.s@.f6.i = (0)) _then _(
+         L5425( l3v14z.f3.id );
+         P21077( (6), false );
+         L12635( l3v14z );
+         putInsn( 'УИ14' ); ГГ( '14СА' ); ГГ( l3v14z.f3.s@.f8.a ); putSep;
+         L3636;
+         putInsn( '14СЧ' );
+         L21145( 'WА' );
+       _)
+       _else P4142( wri, (2) );
+   _)_); (* 22453 *)
+   gl36z := (1);
+   l4v7z := false;
+   _until (lastChar <> comma);
+   l4v6z := gl37z;
+   _if (l4v1z = (20)) _then  L21145( 'WL' );
+   _goto 21412;
+ _);
+ 20: _(
+   _if l4v10z _then _goto 22254
+   _else _if modeI _then L3667( '16ПВРR' )
+   _else _( ГГ( '16ПВО' ); L3667( 'WL' ) _)
+ _);
+ 22, 23: L21070( (0) );
+ 25, 26, 28: _(
+   l4v7z := true;
+22500:
+   mapia(l4v1z - 22, l4v3z);
+   _repeat
+   L20307( l3v14z );
+   _if  (l3v14z.f3.s@.f6.i >= (4)) _then  P4142( l3v6z, (0) );
+   L12635( l3v14z );
+   putInsn( 'ИК5' ); putInsn( '11ПА' ); putInsn( '11ЗЧ10' );
+   _if l4v7z _then _(
+     _if (lastChar <> comma) _then  L21070( (1) );
+     _if _not L14707( l3v14z) _then  L21070( (2) );
+     curVal := l3v14z.f3.s@.f5;
+     putConst( l4v2z, false );
+     L12445( l3v14z );
+     L3732( l3v14z.f4.pi );
+     putInsn( '11ЗЧ13' );
+     _if (lastChar = eq) _then _(
+       L20307( l3v20z );
+       _if _not (l3v20z.f3.id = intType) _then  P4142( l3v6z, (3) );
+       L12635( l3v20z );
+     _) _else _( ГГ( gl37z ); putInsn( l4v2z ); _);
+     putInsn( '11ЗЧ15' );
+   _);
+   P4357( 11, l4v3z );
+   P4357( 12, 'ВD' );
+   gl36z := (0);
+   L3712;
+   _until (lastChar <> comma);
+   gl145z[15] := 'ИК';
+   gl145z[13] := ;
+   gl145z[14] := ;
+   _goto 21412;
+ _);
+ 24, 27: _( l4v7z := false; _goto 22500 _);
+ 29: L21070( (3) );
+ 30: _(
+   L3636;
+   write('15ПА');
+   _if l4v10z  _then_(
+     gl58z := true;
+     getToken;
+     gl58z := false;
+     _if (tokKind = tkStr) _then _(
+       _if  (gl30z > 60) _then  P4142( l3v6z, (0) );
+       ГГ( tok );
+       getToken;
+     _) _else P4142( l3v6z, (1) );
+   _);
+   putSep;
+   L3667( '12ПВФ' );
+   _if l4v10z _then _goto 21412;
+ _);
+ 31: _(
+   P21311( l3v14z, _NIL );
+   L14742;
+   P14750( (1), l3v14z );
+   _goto 21412;
  _)
  _end
 _);
+(* Level 4 *) _proced P22731(_var l4a1z:six; l4a2z:alfa);
+_label 22750;
+_(
+ _case l4a1z.f0.i _of
+ 0:  _if (l4a1z.f5.i = (0)) _then  P4357( (1), l4a2z );
+ 2: _goto 22750;
+ 1: _(
+   P11512( (3), l4a1z );
+22750:
+   L3732( l4a1z.f4.pi );
+   P4357(3 - l4a1z.f5.i, l4a2z );
+ _);
+ 3: _if (l4a1z.f5.i = (0)) _then _(
+   P11450( l4a1z.f4.s, l4a1z.f1.i, l4a2z );
+   L3732( l4a1z.f4.pi );
+ _) _else _(
+   L3732( l4a1z.f4.pi );
+   P4357( (1), l4a2z );
+   P4357( (0), l4a1z.f1.a );
+ _)
+ _end
+_);
+
 _( (* P23373 *)
 23710:;
 23711:
@@ -4016,10 +4257,10 @@ write('#########################################################################
 write('############################################################################################');
 write('############################################################################################');
 
-write('################################################');
-write('########################');
-write('############');
-write('######');
+% write('################################################');
+% write('########################');
+% write('############');
+% write('######');
 % write('######');
 27721:;
 _).
