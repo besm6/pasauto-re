@@ -1,6 +1,8 @@
 (*=p-,t-,m-,c-,k8*)_program compil;
 _label 27721;
-_const spaces='      ';sp=' ';asg='≡200';c4096=4096;T=true;F=false;O='0';
+_const spaces='      ';sp=' ';
+asg='≡200';                     % The character escape symbol is a la CDC 6600
+c4096=4096;T=true;F=false;O='0';
 branch='branch';back='back';kexit='exit';select='select';not='not';and='and';or='or';
 label='label';type='type';with = 'with';downto='downto';for='for';repeat='repeat';
 until='until';while='while';do='do';to='to';go='go';if='if';then='then';else='else';
@@ -8,13 +10,14 @@ goto='goto';begin='begin';in='in';kdiv='div';mod='mod';extern='extern';const='co
 var='var';functi='functi';proced='proced';nil='nil';record='record';case='case';
 of='of';end='end';array='array';file='file';set='set';
 (*=a0*)
-icomma=',';icolon=':';ieq='=';e050='Э050';asn='СД';vm='ВМ';yta='МР';sm='СМ';
-mv='МВ';utm='СА';pi='ПИ';aox='ЛС';wtc='ИК';ra='РА';mul='АУ';div='АД';add='АС';
+icomma=',';icolon=':';ieq='=';e050='Э050';asn='СД';vm='ВМ';yta='МР';xts='СМ';
+mv='МВ';utm='СА';pi='ПИ';aox='ЛС';wtc='ИК';ntr='РА';mul='АУ';div='АД';add='АС';
 rsub='ОВ';xxta='СЧ';utc='ИА';sub='АВ';vtm='ПА';ita='ВИ';uj='ПБ';u1a='У1';uza='У0';avx='ИЗ';
 aex='СР';vjm='ПВ';atx='ЗЧ';aax='ЛУ';z64='Z64';bp='10';bputc='10ИА';istar='*';
 (*=a1*)zz='z';c127=127;i6=6400000000000006C;c100=100;
 auANY=0;auINT=1;auSETINT=2;auFL=3;auSETFL=4;
-_type sixwords=_array[1..6] _of alfa;bitset=_set _of 0..47;
+_type
+bitset=_set _of 0..47;
 letter = 'a'..'z';
 int=integer;bool=boolean;
 word=_record _case int _of
@@ -31,37 +34,42 @@ _end;
  _end;
  labels = _record num, line:int; lev, lab:alfa; nxt: @labels; def: bool _end;
  class = (cType, cConst, cVar, cFun, c4, c5);
- kind = (kSc, kRng, kPtr, kSet, kArr, kRec, kFile, kCases);
+ kind = (kSc, kRng, kPtr, kSet, kArr, kRec, kFile, kAlias);
+%
+% It appears that the compiler does not correctly compute the variable record length based
+% on selectors if fixed fields are present.
+% Thus all fields have to be brought under "case".
+%
  ident = _record
     _case int _of
-    6:(d6: _array [0..2] _of int; idx:int; d64, d65:int);
-    7:(d7: _array [0..4] _of int; sz:int; k: kind);
-    8:(d8: _array [0..5] _of int; off:alfa; trace:bool);
-    9:(d9: _array [0..6] _of int; lo, hi: int);
-    10:(da: _array [0..6] _of int; pck:int);
-    13:(nm:alfa;
+    6:(d6: _array [0..2] _of int; idx:int; d64, d65:int);       % standard proc/func
+    7:(d7: _array [0..4] _of int; sz:int; k: kind);             % basic type
+    8:(d8: _array [0..5] _of int; off:alfa; trace:bool);        % variable
+    9:(d9: _array [0..6] _of int; lo, hi: int);                 % array type
+    10:(da: _array [0..6] _of int; pck:int);                    % e.g. file
+    13:(nm:alfa;                                                % common fields, proc/func
     lev:alfa;
     nxt:idptr; (* next in hash *)
     bas:idptr; (* base type of derived type; standard function index *)
     cl: class;
     vty: idptr; (* variable: type; type: size (sz above) *)
-    f6, f7, f8:word; f9:alfa; f10:int; f11, f12: idptr)
+    f6, f7:word; lbl, orignm:alfa; f10:int; f11, f12: idptr)
  _end;
  idptr = @ident;
  ekind = (ekCONST, ek1, ek2, ek3);
- expr = _record ek:ekind; f1, f2:word; ty:idptr; in:pInst; f5: int _end;
+ expr = _record ek:ekind; off, reg:alfa; ty:idptr; in:pInst; inv: int _end;
  aumode = int;
  inst = _record nxt:pInst; au:aumode; m, op, a:alfa _end;
  pInst = @inst;
  tkind = (tk0, tkIdent, tkWord, tkInt, tkStr, tkReal, tkChar, tkField);
- extFile = _record nm:alfa; f1, f2, f3: word; nxt: @extFile _end;
+ extFile = _record nm:alfa; nuz, len:int; def: bool; nxt: @extFile _end;
 _var
    modeB:int;
    rval:real;
    g12z, g13z, modeF,
    modeG, g16z, modeDe, modeCH, modeeL : bool;
    inInclude: bool;
-          errcnt, maxerr, nLex, lineNum, g25z, g26z, curWith, nWith, poolIdx,
+          errcnt, maxerr, nLex, lineNum, g25z, ival, curWith, nWith, poolIdx,
    g30z, poolStart, poolAddr, dynMem, modeK, g35z, curAU:int;
    XTA, tok, level:alfa;
    g40z, g41z, curLab,
@@ -80,26 +88,26 @@ _var
    g76z, g77z,
    textFile, inFile,  outFile:idptr; ptrType, setType,
    boolType, intType, realType, charType, alfaType: idptr;
-   g88z:idptr; g89z,
-   g90z, g91z, savedNum, g93z, g94z, g95z, g96z, g97z:int;
+   dummyId:idptr; extCnt,
+   entrCnt, g91z, savedNum, g93z, g94z, g95z, g96z, g97z:int;
    modeV, modeS: bool;
    g100z, g101z, g102z, g103z: bool;
-   g104z, g105z:@extFile; g106z:alfa; g107z, g108z, g109z:bool;
+   curExtF, extFList:@extFile; g106z:alfa; g107z, g108z, g109z:bool;
    rets: _array [3..8,1..6] _of alfa;
    extras: _array [1..17] _of alfa;
    idTable, idTabA: _array[0..127] _of idptr;
    withs: _array [0..18] _of expr;
    dummy:_array [1..4] _of char;
    pool: _array[1..4096] _of word;
-   labList:@labels; g4634z:@typchain; g4635z, g4736z:_array [0..100] _of char;
+   labList:@labels; tchain:@typchain; extSym, entryS:_array [0..100] _of char;
    g4837z, g4838z:int;
 (*=c+*)
-_proced L3013(i:int);
+_proced wrInt(i:int);
 _(
   write(i:0)
 _);
 
-_proced P3020;
+_proced wrFName;
 _(
   _if inInclude _then _(
     ГГ('*ФАЙЛ ', fname);
@@ -109,24 +117,24 @@ _);
 (*=c-*)_proced prepErr(i:int);(*=c+*)
 _(
  rewrite(output);
- P3020;
+ wrFName;
  _select
  i = 0:  write('ВСТРЕТИЛСЯ КОНЕЦ ФАЙЛА');
- i = 1: _( write('НЕ ЗАКРЫТА УСЛ СЕКЦИЯ'); ГГ(' СТР.='); L3013(g26z)_);
- i = 2: _( write('ВЛОЖЕННОСТЬ !'); ГГ(' СТР.='); L3013(lineNum)_);
+ i = 1: _( write('НЕ ЗАКРЫТА УСЛ СЕКЦИЯ'); ГГ(' СТР.='); wrInt(ival)_);
+ i = 2: _( write('ВЛОЖЕННОСТЬ !'); ГГ(' СТР.='); wrInt(lineNum)_);
  i = 3: write('НЕ ЗАКРЫТ КОММЕНТАРИЙ');
  i = 4: _( ГГ('ФАЙЛ ', fname); write(' НЕ НАЙДЕН') _);
- i = 5: _( ГГ('В '); L3013(lineNum); write(' СТРОКАХ ОБНАРУЖЕНО ');
-         L3013(errcnt); ГГ(' ОШИБ.') _);
-  T: _( write('ОШ ПРЕПРОЦЕССОРА'); ГГ(' СТР.='); L3013(lineNum) _)
+ i = 5: _( ГГ('В '); wrInt(lineNum); write(' СТРОКАХ ОБНАРУЖЕНО ');
+         wrInt(errcnt); ГГ(' ОШИБ.') _);
+  T: _( write('ОШ ПРЕПРОЦЕССОРА'); ГГ(' СТР.='); wrInt(lineNum) _)
   _end;
  writeLN;
  code(ПБ76002=,);
 _);
-(*=c-*)_proced P3110(a:alfa; i: int);(*=c+*)
+(*=c-*)_proced errMsg(a:alfa; i: int);(*=c+*)
 _(
 rewrite(output);
-P3020;
+wrFName;
 _case a _of
 'ОШИБКА': _(
   write('ТРЕБУЕТСЯ ');
@@ -143,10 +151,10 @@ _);
  i = 1:  write('НЕСООТВ ТИПОВ ПРИ := ');
  i _in [2..4]: _(
    ГГ('МЕТКА ');
-   L3013(g26z);
+   wrInt(ival);
    _select
     i = 2: write(' ОТСУТСТ В СПИСКЕ МЕТОК');
-    i = 3: _(  write(' УЖЕ ОПРЕД В СТРОКЕ '); L3013(cv.i) _);
+    i = 3: _(  write(' УЖЕ ОПРЕД В СТРОКЕ '); wrInt(cv.i) _);
     T: write(' НЕ ОПРЕД')
     _end;
  _);
@@ -262,13 +270,16 @@ _(
   code(=11ПА-17,qqq1:2СЧ3=СД/-3/,2ЗЧ3=МР,); output@:=;put(output);code(11КЦqqq1=)
 _);
 
-(*=c-*)_procedure P26222(_var l2a1z:alfa; _var l2a2z:idptr);
+(*=c- L 2*)_procedure P26222(_var l2a1z:alfa; _var l2a2z:idptr);
 _label 26505, 26607, 26631, 27117, 27375, 27404, 27420;
 _const (*=a1*)block='БЛОК';
 arrow='@';dot='.';oparen='(';colon=':';semi=';';lt='<';gt='>';
 star='*';slash='/';minus='-'; plus='+';eq='=';neq='#';qu='''';
 comma=',';cparen=')'; obrack='[';cbrack=']';(*=a0*)
 c259=259;c258=258;e48=4T;
+fLAB=0;fGOTO=1;fU1A=2;fUZA=3;fCMD=4;fBCALL=5;fVTM15=7;fBVTM15=8;fSTKOP=9;
+fPUSH=10;fCALL=11;fFIXRT=12;fST11=14;fVJM14=15;fSETREG=16;fEQ=17;fMATH=19;
+fMVSTK=20;fOVFL=22;fCALL1=23;
 _type oneinsn=_record next:@oneinsn; mode: int; ir, op, addr:alfa _end;
 _var v21, v22: idptr;l2v3z,l2v4z, l2v5z:idptr;
 l2v6z, l2v7z, l2v8z:alfa;
@@ -341,69 +352,69 @@ _proced L3651(a31:alfa); _(
  L3712;
  curLab := a31;
  _);
-(* L 3 *) _proced dump(a31:pInst);
-_const mask=00003400T;
-_var v31:alfa; v32:pInst; _(
- (align)_if a31 = _nil _then exit;
+(* L 3 *) _proced dump(K:pInst);
+_const mask='070000';
+_var T:alfa; N:pInst; _(
+ (q)_if K = _nil _then exit;
 
- _if a31@.nxt # _nil _then _(
-   _if (a31@.op = XTA) & (a31@.nxt@.op = ATX) &
-       (a31@.nxt@.m = '17') & (a31@.nxt@.a = O) _then _(
-     a31@.op := 'СМ';
-     _if a31@.m = O _then a31@.m := basReg;
-     v32 := a31@.nxt;
-     a31@.nxt := a31@.nxt@.nxt;
-   _) _else _if ((a31@.nxt@.op = WTC) | (a31@.nxt@.op = UTC)) & (a31@.au # auANY) _then _(
-     v32 := a31@.nxt;
-     (loop) _while v32@.nxt # _nil _do _(
-       v31 := v32@.nxt@.op;
-       _if (v31 = UTC) | (v31 = WTC) _then v32 := v32@.nxt
+ _with K@ _do _if nxt # _nil _then _(
+   _if (op = XTA) & (nxt@.op = ATX) &
+       (nxt@.m = '17') & (nxt@.a = O) _then _(
+     op := XTS;
+     _if m = O _then m := basReg;
+     N := nxt;
+     nxt := nxt@.nxt;
+   _) _else _if ((nxt@.op = WTC) | (nxt@.op = UTC)) & (au # auANY) _then _(
+     N := nxt;
+     (loop) _while N@.nxt # _nil _do _(
+       T := N@.nxt@.op;
+       _if (T = UTC) | (T = WTC) _then N := N@.nxt
        _else _exit loop;
      _);
-     v32@.au := a31@.au;
+     N@.au := au;
    _);
-   dump(a31@.nxt);
+   dump(nxt);
  _);(* 4017 *)
- _case a31@.au _of
+ _case K@.au _of
   auANY:;
   auINT: _if curAU # 1 _then _( putInsn('РА3'); curAU := 1 _);
   auSETINT: curAU := 1;
   auFL: _if curAU # 2 _then _(  putInsn('РА'); curAU := 2 _);
   auSETFL: curAU := 2
  _end; (* 4050 *)
- _if a31@.m = label _then
-   _if a31@.a # O _then metka(a31@.a) _else _(
-     TNL(v31);
+ _if K@.m = label _then
+   _if K@.a # O _then metka(K@.a) _else _(
+     TNL(T);
      align;
      write('10ПВУРЕГ=,');
-     ГГ(v31, ':10СА-');
-     putInsn(v31);
+     ГГ(T, ':10СА-');
+     putInsn(T);
  _) _else _(
- _if (a31@.m # O) _then  ГГ(a31@.m);
- _if (*=c-*)(a31@.a & mask # 0) &
-     (a31@.a & 77774T = 0) &
-     (a31@.a & mask # mask) & (*=c+*)
-     (a31@.op # UTM) &
-     (a31@.op # UTC) &
-     (a31@.op # WTC) _then _(
+ _if (K@.m # O) _then  ГГ(K@.m);
+ _if (*=c-*)(K@.a & mask # 0) &
+     (K@.a & 77774T = 0) &
+     (K@.a & mask # mask) & (*=c+*)
+     (K@.op # UTM) &
+     (K@.op # UTC) &
+     (K@.op # WTC) _then _(
     ГГ(UTC);
-    _if a31@.a # O _then putInsn(a31@.a);
-   ГГ(a31@.op);
+    _if K@.a # O _then putInsn(K@.a);
+   ГГ(K@.op);
  _) _else _(
-   ГГ(a31@.op);
- _if a31@.a # O _then  ГГ(a31@.a);
+   ГГ(K@.op);
+ _if K@.a # O _then  ГГ(K@.a);
  _);
  putSep;
- _if (a31@.op = VJM) | (a31@.op = 'Э050') _then align;
+ _if (K@.op = VJM) | (K@.op = 'Э050') _then align;
  _); (* 4141 *)
 _);
 (* L 3 *) _proced prErr(a31:alfa; a32:int);
  _(
  _if g71z _then exit;
- P3110(a31, a32);
+ errMsg(a31, a32);
  (*=a1 error messages *)
- ГГ('***ОШ.', a31, '='); L3013(a32);
- ГГ(' СТР.='); L3013(lineNum); ГГ('.NLЕХ='); L3013(nLex);
+ ГГ('***ОШ.', a31, '='); wrInt(a32);
+ ГГ(' СТР.='); wrInt(lineNum); ГГ('.NLЕХ='); wrInt(nLex);
  ГГ('.ИД=', tok, '.СИМ=', prev);
  writeln('.КОНТЕКСТ');
  code(16ПВСТХТ=,);
@@ -435,12 +446,12 @@ _var v31:alfa; v32:idptr; (*=c+*) _(
    extras[a31] := UTC;
  _);
  _if ~l2v19z  _then write(istar);
- ГГ(v32@.f9);
+ ГГ(v32@.orignm);
  write(icolon);
  MAPЯГА(v32@.nm, v31);
- _if (v31 = v32@.f9) _then _(
+ _if (v31 = v32@.orignm) _then _(
  write('10ПВУРЕГ=,10СА-');
- ГГ(v32@.f9);
+ ГГ(v32@.orignm);
  write('(1)=14ПВСН,');
  _);
  _if v32@.vty = _NIL _then a31 := 3 _else  a31 := 4;
@@ -460,7 +471,7 @@ _var v31:alfa; v32:idptr; (*=c+*) _(
  _)
  _end;
  MAPЯГА( v32@.nm, v31);
- ГГ('`', v31, '`17СА', v32@.f8.a);
+ ГГ('`', v31, '`17СА', v32@.lbl);
  curAU := 1;
  _)
  end;
@@ -565,8 +576,8 @@ _var v41:idptr; _(
  new(v41, 6);
  (*=c-*)mapai(a41 & '177', v31);(*=c+*)
  v41@ := [a41, 0, idTable[v31], , 3, curId];
- v41@.idx := g26z;
- g26z := g26z+1;
+ v41@.idx := ival;
+ ival := ival+1;
  idTable[v31] := v41;
  _);
 
@@ -589,16 +600,16 @@ v31 := 0;
  inInclude := ; modeL := ; g63z := ; g58z := ; modeX := ; basReg := ;
  XTA := xxta;
  endl := chr(175B);
- g89z := -1; g90z := ;
+ extCnt := -1; entrCnt := ;
  modeK := 100;
  poolStart := ord(ref(pool[9]));
  poolAddr := poolStart-9;
  g47z := _NIL;
- g4634z := ;
+ tchain := ;
  curId := ;
  g77z := ;
  labList := ;
- g105z := ;
+ extFList := ;
  errcnt := 0;
  maxerr := 10;
  g43z := '11';
@@ -652,7 +663,7 @@ v31 := 0;
  outFile@.off := BP;
  g76z := intType;
  curId := _NIL;
- g26z := 0;
+ ival := 0;
  declStFun('РUТ');    % 0
  declStFun('GЕТ');    % 1
  declStFun('RЕWRIТ'); % 2
@@ -685,7 +696,7 @@ v31 := 0;
  declStFun('NЕWD');   % 29
  declStFun('ВIND');   % 30
  declStFun('INS');    % 31
- g26z := 0;
+ ival := 0;
  curId := realType;
  declStFun('SQRТ');   % 0
  declStFun('SIN');    % 1
@@ -760,7 +771,7 @@ _var v31:int; _(
  v31 := v31-poolAddr;
  mapia(v31, offset);
  _);
-(* L 3 *) _proced L5264(arg:alfa);
+(* L 3 *) _proced forceName(arg:alfa);
 _var dum:char; a: _array[1..12] _of char;
  i:int; res:alfa; _(
  unpck(a[6], arg);
@@ -772,7 +783,7 @@ _var dum:char; a: _array[1..12] _of char;
  cv.a := res;
  putConst(g41z, T);
  _);
-(* L 3 *) _proced L5312(arg:alfa);
+(* L 3 *) _proced putName(arg:alfa);
 _var dum:char; a:_array [1..12] _of char;
  i:int; res:alfa;  _(
  unpck(a[6], arg);
@@ -797,9 +808,9 @@ _var v31:alfa; v32:alfa; v33, v34:alfa; _(
  metka(v32);
  L3651('ЗЧ1');
  a31@.nm := v32;
- cv := a31@.f7;
+ cv.i := a31@.lo;
  putConst(v33, F);
- cv.i := a31@.f8.i-cv.i;
+ cv.i := a31@.hi-cv.i;
  putConst(v34, F);
  idxBase;
  L3656(SUB, v33);
@@ -814,16 +825,17 @@ _var v31:alfa; v32:alfa; v33, v34:alfa; _(
  _);
 (* L 3 *) _proced L5425(a31:idptr);
 _var v31:idptr; _(
- _if (a31@.f8.i = 0) _then _(
- v31 := a31@.bas;
- L5264(v31@.nm);
- a31@.f8.a := g41z;
- (loop) _(
- v31 := v31@.f7.id;
- _if (v31 = _NIL) _then exit;
- L5264(v31@.nm);
- _goto loop _)
- _);
+ _if a31@.lbl = O _then _(
+   v31 := a31@.bas;
+   forceName(v31@.nm);
+   a31@.lbl := g41z;
+   (loop) _(
+     v31 := v31@.f7.id;
+     _if v31 = _NIL _then exit;
+     forceName(v31@.nm);
+     _goto loop
+   _)
+ _)
 _);
 
 (*=c- L 3 *) _proced getT;
@@ -852,7 +864,7 @@ _);
  _if a41 < 5 _then _(
  _case a41 _of
  0:;
- 1: g26z := 1;
+ 1: ival := 1;
  2, 3, 4: _(
  _while input@ # qu _do get(input);
  get(input);
@@ -914,7 +926,7 @@ _var v41:int; _(
  get(input);
  _if input@ > '3' _then  L5462(2);
 
- g26z := ord(input@);
+ ival := ord(input@);
  v41 := 1;
  _while v41 <= 2 _do _(
    get(input);
@@ -922,10 +934,10 @@ _var v41:int; _(
    L5462(3);
     exit;
   _);
- (*=m-*)g26z := ord(input@)+g26z*8;
+ (*=m-*)ival := ord(input@)+ival*8;
  v41 := v41+1;
 _);
- input@ := chr(g26z);
+ input@ := chr(ival);
  _);
  (* L 4 *) _proced getId;
 _var t:word; i:int; _(
@@ -1045,7 +1057,7 @@ _) _else _if input@ = '$' _then _(
  _);
  (l3v21z = 'ВЕG'): _(
     skipping := tok # g45z;
-    g26z := lineNum;
+    ival := lineNum;
  _);
  (l3v21z = 'INС') & ~skipping: _(
  _if inInclude _then  prepErr(2);
@@ -1177,7 +1189,7 @@ _if (input@ = '_') _then _(
  _else _( L5462(0);  v3E := 1_);
  get(input);
  _until input@ > '9';
- g26z := 0;
+ ival := 0;
  _if (input@ = 'B') | (input@ = 'C') | (input@ = 'T') _then _(
  l3v15z := 1;
  _while l3v15z <= v3E _do _(
@@ -1187,19 +1199,19 @@ _if (input@ = '_') _then _(
  _if input@ = 'T' _then _(
  l3v15z := v3E;
  _while l3v15z >= 1 _do _(
-   g26z := g26z; code(СД/3/=17ЗЧ,);
-   g26z := ord(l3a21z[l3v15z]);
+   ival := ival; code(СД/3/=17ЗЧ,);
+   ival := ord(l3a21z[l3v15z]);
    code(СД/3/=MP,17CP=);
-   g26z := ;
+   ival := ;
    l3v15z := l3v15z-1;
  _)
  _) _else _( (* 6537 *)
   l3v15z := 1;
    _while l3v15z <= v3E _do _(
-   g26z := g26z; code(СД/-3/=17ЗЧ,);
-   g26z := ord(l3a21z[l3v15z]);
+   ival := ival; code(СД/-3/=17ЗЧ,);
+   ival := ord(l3a21z[l3v15z]);
    code(17CP=);
-   g26z := ;
+   ival := ;
    l3v15z := l3v15z+1;
   _)
  _); (* 6551 *)
@@ -1208,11 +1220,11 @@ _if (input@ = '_') _then _(
  _) _else _( (* 6557 *)
  l3v15z := 1;
  _while l3v15z <= v3E _do _(
- _if g26z <= max _then _(
-  g26z := 10*g26z+ord(l3a21z[l3v15z]);
+ _if ival <= max _then _(
+  ival := 10*ival+ord(l3a21z[l3v15z]);
  _) _else _(
  L5462(7);
- g26z := 0;
+ ival := 0;
  _);
  l3v15z := l3v15z+1;
  _);
@@ -1220,7 +1232,7 @@ _if (input@ = '_') _then _(
 _if input@ = dot _then _(
  get(input);
  _if input@ = dot _then _( input@ := colon; _goto 6462_);
- rval := g26z;
+ rval := ival;
  tokKind := tkReal;
  _if input@ > '9' _then L5462((8) ) _else _(
  _repeat
@@ -1231,7 +1243,7 @@ _if input@ = dot _then _(
  _)
  _); (* 6620 *)
  _if input@ = 'E' _then _(
- _if l3v43z = 0 _then _( rval := g26z; tokKind := tkReal_);
+ _if l3v43z = 0 _then _( rval := ival; tokKind := tkReal_);
    l3v18z := F;
    get(input);
    _case input@ _of
@@ -1388,8 +1400,8 @@ _var v31:@typchain; v32, v33:idptr;
 (* L 4 *) _proced chain;
  _(
  new(v31);
- v31@ := [g4634z, v32, v33];
- g4634z := v31;
+ v31@ := [tchain, v32, v33];
+ tchain := v31;
  typeCheck := typeCheck(v32, v33);
  _);
 
@@ -1409,22 +1421,22 @@ kPtr: _(
  _if (t1 = ptrType) | (t2 = ptrType) _then _goto 7355 _else _(
    v32 := t1@.bas;
    v33 := t2@.bas;
-   _if g4634z # _NIL _then _(
-     v31 := g4634z;
+   _if tchain # _NIL _then _(
+     v31 := tchain;
      _while v31 # _NIL _do _(
        _if (v31@.t1 = v32) & (v31@.t2 = v33)
        | (v31@.t2 = v32) & (v31@.t1 = v33) _then _goto 7355
        _else v31 := v31@.nxt;
      _);
      chain;
-   _) _else _( setup(t1); chain; g4634z := _NIL; rollup(t1) _);
+   _) _else _( setup(t1); chain; tchain := _NIL; rollup(t1) _);
    exit
   _)
 _);
 kSet: _goto 7355;
 kArr: _if typeCheck(t1@.bas, t2@.bas) & typeCheck(t1@.f7.id, t2@.f7.id)
    _then _goto 7355;
-kCases: sysErr(2);
+kAlias: sysErr(2);
 kFile:_if typeCheck(t1@.bas, t2@.bas) & (t1@.pck = t2@.pck)
   _then _goto 7355;
 kRec:
@@ -1438,7 +1450,7 @@ _var v31:idptr; v32:char; _(
   v31 := a31;
  _case tokKind _of
 tkWord: _(
- _if (tok # 'NIL') _then _goto 7666;
+ _if tok # 'NIL' _then _goto 7666;
  7531:
  a31 := ptrType;
  a32 := g43z;
@@ -1460,7 +1472,7 @@ tkStr: _( a31 := alfaType;
   _);
 tkInt: _(
   a31 := intType;
-  cv.i := g26z;
+  cv.i := ival;
   _goto 7570;
  _);
 tkReal: _(
@@ -1476,7 +1488,7 @@ tk0: _(
  P7520(a31, a32, F);
  _if (a31 = _NIL) _then _goto 7666;
  _if (v32 = '-') _then _(
-   _if (a31 = intType) _then _( cv.i := -g26z; _goto 7570 _)
+   _if (a31 = intType) _then _( cv.i := -ival; _goto 7570 _)
    _else _(
   _if (a31 = realType) _then _( rval := -rval; _goto 7601 _)
   _else _goto 7666;
@@ -1488,7 +1500,7 @@ _end;
  _then exit;
  7666: a31 := _NIL; (q)
 _);
-_proced parseType(a31:int; a32:alfa; _var a33:idptr; a34:int);
+_proced parseType(a31:int; a32:alfa; _var a33:idptr; bckt:int);
 _label 10503, 10505, 10507, 10527, 11022, 11126;
 (*=a1*)_const packed='PACKED';
 _var baseType, curType, v33 :idptr;
@@ -1564,7 +1576,7 @@ _repeat
  g77z := a42;
  _while l4v8z # _NIL _do _(
  l4v8z@.f6.id := v43;
- l4v8z@.f8.i := a41;
+ l4v8z@.hi := a41;
  a41 := a41+l4v9z;
  l4v8z := l4v8z@.vty;
  _);
@@ -1601,7 +1613,7 @@ exit;
    _else _(
     _if l4id7z@.cl # cType _then flistErr(12) (* no type id *)
     _else _(
-     _if l4id7z@.k = kCases _then l4id7z := l4id7z@.bas;
+     _if l4id7z@.k = kAlias _then l4id7z := l4id7z@.bas;
      _if l4id7z@.k # kSc _then flistErr(13); (* must be a discrete type *)
     _);
     v43 := l4id7z;
@@ -1677,8 +1689,8 @@ tk0: _( (* 10360 *)
  new(curType, 9);
  curType@ := [a32, , , , 0, 1, 0];
  _if a32 # O _then _(
-   curType@ := [, level, idTable[a34] ];
-   idTable[a34] := curType;
+   curType@ := [, level, idTable[bckt] ];
+   idTable[bckt] := curType;
  _); (* 10402 *)
  v37 := 0;
  a33 := curType;
@@ -1700,7 +1712,7 @@ tk0: _( (* 10360 *)
  _if prev # cparen _then typeErr(4);
  v33@.f7.id := _NIL;
  curType@.f7.i := v37;
- curType@.f8.i := 0;
+ curType@.lbl := O;
 _) _else _( (* 10460 *)
 _if prev = arrow _then _(
  parseType(1,O, baseType, 0);
@@ -1714,8 +1726,8 @@ _); 10503: getT; exit;
   10507: a33 := curType;
   _if a32 = O _then _( exit; _goto 10527 _);
   new(v33, 7);
-  v33@ := [a32, level, idTable[a34], curType, cType, , kCases];
-  idTable[a34] := v33;
+  v33@ := [a32, level, idTable[bckt], curType, cType, , kAlias];
+  idTable[bckt] := v33;
   exit;
 10527:
    baseType := _NIL;
@@ -1746,7 +1758,7 @@ tkIdent: _( (* 10613 *)
   _) _else typeErr(19);
  _);
  _if curId@.cl # cType _then _goto 10527;
- _if curId@.k = kCases _then curId := curId@.bas;
+ _if curId@.k = kAlias _then curId := curId@.bas;
  _if (a31 = 1) & (curId@.k = kFile) _then  typeErr(20);
  _if (a31 = 2) & (curId@.k # kSc) & (curId@.k # kRng)
  _then typeErr(21);
@@ -1764,8 +1776,8 @@ tkWord: _( (* 10666 *)
  new(baseType, 7);
  v37 := 0;
  baseType@ := [ a32, , , ,cType, , kRec];
- baseType@ := [, level, idTable[a34] ];
- idTable[a34] := baseType;
+ baseType@ := [, level, idTable[bckt] ];
+ idTable[bckt] := baseType;
  g77z := baseType;
  doFields(v37, baseType, _NIL);
  _if (tokKind # tkWord) | (tok # end) _then  typeErr(23);
@@ -1784,8 +1796,8 @@ tkWord: _( (* 10666 *)
   _if curType = _NIL _then_(
    a33 := v33;
    _if a32 # O _then _(
-    v33@ := [, level, idTable[a34] ];
-    idTable[a34] := v33;
+    v33@ := [, level, idTable[bckt] ];
+    idTable[bckt] := v33;
    _)
  _) _else curType@.bas := v33;
  curType := v33;
@@ -1804,12 +1816,12 @@ tkWord: _( (* 10666 *)
  _if v33@.k = kRng
  _then l3v8z := v33@.hi-v33@.lo+1
  _else  typeErr(28);
- _if v37 = 1 _then curType@.f8.i := 0
+ _if v37 = 1 _then curType@.lbl := O
  _else _(
    v36.i := v37;
  P5215(v36.i, cv.i);
  putConst(v36.a, F);
- curType@.f8 := v36;
+ curType@.lbl := v36.a;
  _);
  (*=m+*)
  v37 := v37*l3v8z;
@@ -1830,8 +1842,8 @@ tkWord: _( (* 10666 *)
  a33@ := [0, , , baseType, cType, l3v8z, kFile, v37];
  11126:
  _if a32 # O _then _(
- a33@ := [a32, level, idTable[a34]];
- idTable[a34] := a33;
+ a33@ := [a32, level, idTable[bckt]];
+ idTable[bckt] := a33;
  _);
  exit
 _); (* 11140 *)
@@ -1906,7 +1918,7 @@ _until prev # comma;
   _if modeV & (v37 < kArr) _then  v33@.trace := T _else v33@.trace := F
  _) _else _(
   v33@.vty := v31;
-  v33@.f8.a := a32;
+  v33@.lbl := a32;
  _);
  alfAdd(a32, v34);
  v36 := v32 = v33;
@@ -1917,7 +1929,7 @@ _until prev # comma;
  getT;
  v32@.bas := a31;
 _);
-   (* L 3 *) _proced P11450(a31:pInst; a32, a33:alfa);
+   (* L 3 *) _proced replace(a31:pInst; a32, a33:alfa);
 _var v31:pInst; _(
  v31 := a31;
  _while v31 # _NIL _do _(
@@ -1930,232 +1942,238 @@ _);
  new(i);
  _if i = _NIL _then sysErr(0);
 _);
-(* L 3 *) _proced P11512(a31:int; _var a32:expr);
+(* L 3 *) _proced form1(n:int; _var ret:expr);
 _label 11523, 11525, 11631, 11703, 11735;
-_var v31, v32:pInst; v33:alfa;
-(* L 4 *) _proced L11477;
- _(
- mkInst(v32);
- v32@ := [ a32.in, g35z ];
- a32.in := v32;
- _);
-_( (* P11512 *) (*=a0*)
-(a) L11477;
-_case a31 _of
-0: _( v32@.a := '12';
-11523: v32@.op := XTA;
-11525: v32@.m := basReg;
+_var v31, cur:pInst; v33:alfa;
+(* L 4 *) _proced addInst;
+_(
+ mkInst(cur);
+ cur@ := [ ret.in, g35z ];
+ ret.in := cur;
 _);
-1: _(v32@.a := '13'; _goto 11523 _);
-2: _(v32@.a := '13'; v32@.au := auINT; v32@.op := AEX; _goto 11525 _); (* ineff *)
+_( (* form1 *) (*=a0*)
+(a) addInst;
+_case n _of
+0: _( cur@.a := '12';
+11523: cur@.op := XTA;
+11525: cur@.m := basReg;
+_);
+1: _(cur@.a := '13'; _goto 11523 _);
+2: _(cur@.a := '13'; cur@.au := auINT; cur@.op := AEX; _goto 11525 _); (* ineff *)
 3: _(
- v32@ := [, , a32.f2, XTA, a32.f1];
- a32.ek := ek3;
- _if (a32.f2.i = 0)
- & (a32.f1.i # 0)
- & (v32@.nxt@.op # UTC)
- & (v32@.nxt@.op # WTC) _then v32@.m := basReg;
+ cur@ := [, , ret.reg, XTA, ret.off];
+ ret.ek := ek3;
+ _if (ret.reg = O)
+ & (ret.off # O)
+ & (cur@.nxt@.op # UTC)
+ & (cur@.nxt@.op # WTC) _then cur@.m := basReg;
 _);
 4: _(
- v32@.a := 'ТR';
- v32@.au := auSETINT;
+ cur@.a := 'ТR';
+ cur@.au := auSETINT;
  _goto 11703;
 _);
 5: _(
-v32@ := [, 1, basReg, MUL, g41z];
- P11512(17, a32);
+cur@ := [, 1, basReg, MUL, g41z];
+ form1(17, ret);
 _);
-6: v32@ := [, 1, 0, AVX, 'ЧМ1'];
-7: v32@ := [, , a32.f2, SUB, a32.f1];
-8: v32@ := [, , 0, XTA, 0];
+6: cur@ := [, 1, 0, AVX, 'ЧМ1'];
+7: cur@ := [, , ret.reg, SUB, ret.off];
+8: cur@ := [, , 0, XTA, 0];
 9, 14: sysErr(5);
-10: v32@ := [, , '17', XTA, a32.f1];
-11: 11631: _( v32@ := [, , '15', VTM, 0]; L11477; v32@ := [, , 0, ITA, '15'] _);
-12: _( v32@ := [, , a32.f2, UTC, a32.f1]; L11477; v32@ := [, , '15', VTM, 0] _);
-13: v32@ := [, , '11', VTM, 0];
-15: v32@ := [, 2, 0, 'РА', '23'];
-16: _( v32@.op := AOX; v32@.a := 'Z64'; v32@.m := O_); (* inefficient *)
+10: cur@ := [, , '17', XTA, ret.off];
+11: 11631: _( cur@ := [, , '15', VTM, 0]; addInst; cur@ := [, , 0, ITA, '15'] _);
+12: _( cur@ := [, , ret.reg, UTC, ret.off]; addInst; cur@ := [, , '15', VTM, 0] _);
+13: cur@ := [, , '11', VTM, 0];
+15: cur@ := [, 2, 0, 'РА', '23'];
+16: _( cur@.op := AOX; cur@.a := 'Z64'; cur@.m := O_); (* inefficient *)
 17: _if modeM _then _(
-   v32@ := [, 1, , , 'ЦУ'];
+   cur@ := [, 1, , , 'ЦУ'];
    11703:
-   v32@ := [, , '16', VJM];
- _) _else v32@ := [, , 0, YTA, '30'];
-18: _(   v32@ := [, 4, , , 'R']; _goto 11703 _);
-19: v32@ := [, , '17', ATX, 0];
-20: v32@ := [, , basReg, AAX, '13'];
+   cur@ := [, , '16', VJM];
+ _) _else cur@ := [, , 0, YTA, '30'];
+18: _(   cur@ := [, 4, , , 'R']; _goto 11703 _);
+19: cur@ := [, , '17', ATX, 0];
+20: cur@ := [, , basReg, AAX, '13'];
 21: _( v33 := ADD;
 11735:
-v32@ := [, 1, 0, v33, '13'] _);
+cur@ := [, 1, 0, v33, '13'] _);
 22: _( v33 := SUB; _goto 11735_);
 23: _(
- _if (a32.f2.i # 0)
- | (a32.f1.i # 0) _then _(
- v32@ := [, , a32.f2, UTC, a32.f1];
- L11477;
- _) _else _if (a32.in@.nxt # _NIL) & (a32.in@.nxt@.op = WTC) _then_(
- v31 := a32.in;
- a32.in := v31@.nxt;
- a32.in@.op := XTA;
- a32.ek := ek3;
- v31 := a32.in;
+  _if (ret.reg # O) | (ret.off # O) _then _(
+   cur@ := [, , ret.reg, UTC, ret.off];
+   addInst;
+ _) _else _if (ret.in@.nxt # _NIL) & (ret.in@.nxt@.op = WTC) _then_(
+ v31 := ret.in;
+ ret.in := v31@.nxt;
+ ret.in@.op := XTA;
+ ret.ek := ek3;
+ v31 := ret.in;
  _if (v31@.m = '17') & (v31@.a = O) _then _(
    v31 := v31@.nxt;
    _if (v31@.m = '17') & (v31@.a = O) & (v31@.op = ATX) _then
-    a32.in := v31@.nxt;
+    ret.in := v31@.nxt;
  _);
  exit
  _);
  _goto 11631
 _);
 24: _(
- v32@ := [,2, a32.ty@.lev, UTC, a32.ty@.f8];
- L11477;
- v32@ := [, , '12', VTM, 0];
- L11477;
- v32@ := [, , '16', VJM, 'ВП7'];
+ cur@ := [,2, ret.ty@.lev, UTC, ret.ty@.hi];
+ addInst;
+ cur@ := [, , '12', VTM, 0];
+ addInst;
+ cur@ := [, , '16', VJM, 'ВП7'];
 _);
-25:v32@ := [, , level, WTC, v2B];
-26:v32@ := [, , 0, 0, 0];
-27: _( v32@.op := 'СМ'; putConst(v32@.a, F); v32@.m := basReg _);
-28: v32@:= [, , basReg, AAX, g41z]
+25:cur@ := [, , level, WTC, v2B];
+26:cur@ := [, , 0, 0, 0];
+27: _( cur@.op := XTS;
+
+
+putConst(cur@.a, F);
+
+
+cur@.m := basReg _);
+28: cur@:= [, , basReg, AAX, g41z]
 _end; (* 12127 *)
 _);
-(* L 3 *) _proced P12143(a31:int; _var a32:expr; a33:alfa);
+(* L 3 *) _proced form2(f:int; _var ret:expr; arg:alfa);
 _label 12164, 12166, 12205, 12211, 12240, 12242, 12355;
-_var v31:pInst; v32:alfa; v33, v34:int;
-(* L 4 *) _proced L12130;
+_var cur:pInst; v32:alfa; curlev, tolev:int;
+(* L 4 *) _proced addInst;
  _(
- mkInst(v31);
- v31@ := [a32.in, 0];
- a32.in := v31;
+ mkInst(cur);
+ cur@ := [ret.in, 0];
+ ret.in := cur;
  _);
-_( (* P12143 *)
- _if (a31 > 23) _then sysErr(4);
- _if (a31 # 12) _then L12130;
- _case a31 _of
- 0:v31@ := [, , label, , a33];
- 1: _(
-  v31@.op := UJ;
+_( (* form2 *)
+ _if (f > 23) _then sysErr(4);
+ _if (f # fFIXRT) _then addInst;
+ _case f _of
+ fLAB:cur@ := [, , label, , arg];
+ fGOTO: _(
+  cur@.op := UJ;
 12164:
- v31@.m := basReg;
+ cur@.m := basReg;
 12166:
- v31@.a := a33;
+ cur@.a := arg;
  _);
- 2:_( v31@.op := 'У1'; _goto 12164 _);
- 3:_( v31@.op := 'У0'; _goto 12164 _);
- 4: v31@ := [, g35z, a32.f2, a33, a32.f1];
- 7: 12205: _( v31@.m := '15'; v31@.op := VTM; _goto 12166 _);
- 5: 12211: _( _if (modeX) _then _( v31@.m := BP; v31@.op := UTC; v31@.a := O; L12130_); (*ineff*)
- _if a31 = 8 _then _goto 12205 _else _goto 12240;
+ fU1A:_( cur@.op := 'У1'; _goto 12164 _);
+ fUZA:_( cur@.op := 'У0'; _goto 12164 _);
+ fCMD: cur@ := [, g35z, ret.reg, arg, ret.off];
+ fVTM15: 12205: _( cur@.m := '15'; cur@.op := VTM; _goto 12166 _);
+ fBCALL: 12211: _(
+   _if (modeX) _then _( cur@.m := BP; cur@.op := UTC; cur@.a := O; addInst_); (*ineff*)
+   _if f = 8 _then _goto 12205 _else _goto 12240;
  _);
- 6, 13, 18, 21: sysErr(a31);
- 8: _goto 12211;
- 9: v31@ := [, ,  '17', a33, 0];
- 10: _( v31@.m := '17'; v31@.op := ATX; _goto 12166 _);
- 11: 12240: _( v31@.m := '16'; 12242: v31@.op := VJM; _goto 12166 _);
- 12: _(
- _if level = a33 _then exit
+ 6, 13, 18, 21: sysErr(f);
+ fBVTM15: _goto 12211;
+ fSTKOP: cur@ := [, ,  '17', arg, 0];
+ fPUSH: _( cur@.m := '17'; cur@.op := ATX; _goto 12166 _);
+ fCALL: 12240: _( cur@.m := '16'; 12242: cur@.op := VJM; _goto 12166 _);
+ fFIXRT: _(
+ _if level = arg _then exit
  _else _(
- mapai(level, v33);
- mapai(a33, v34);
- L12130;
- _if v34+1 = v33 _then v31@ := [, , '13', 'ПИ', level]
+ mapai(level, curlev);
+ mapai(arg, tolev);
+ addInst;
+ _if tolev+1 = curlev _then cur@ := [, , '13', 'ПИ', level]
   _else _(
-   a33 := rets[v33,v34];
-   _if a33 = O _then _(
-    TNL(a33);
-    rets[v33,v34] := a33;
+   arg := rets[curlev,tolev];
+   _if arg = O _then _(
+    TNL(arg);
+    rets[curlev,tolev] := arg;
    _);
    _goto 12211;
   _)
  _); (* 12276 *)
  _);
- 14: _( v31@.m := '11'; v31@.op := ATX; _goto 12166 _);
- 15: _( v31@.m := '14'; _goto 12242 _);
- 16: _(
-  v31@ := [, , a32.f2, UTC, a32.f1];
-  L12130;
- v31@ := [, , a33, VTM, 0];
- dump(a32.in);
+ fST11: _( cur@.m := '11'; cur@.op := ATX; _goto 12166 _);
+ fVJM14: _( cur@.m := '14'; _goto 12242 _);
+ fSETREG: _(                                     % immediate
+  cur@ := [, , ret.reg, UTC, ret.off];
+  addInst;
+  cur@ := [, , arg, VTM, 0];
+  dump(ret.in);
  _);
- 17:_( v31@.op := AEX; v31@.m := O; _goto 12166_);
- 19: v31@ := [, ,0, 'Э050', a33];
- 20:v31@ := [, , '17', UTM, a33];
- 22: _(
-  v31@ := [,1, '15', VTM, 'ОV'];
-   L12130;
+ fEQ:_( cur@.op := AEX; cur@.m := O; _goto 12166_);
+ fMATH: cur@ := [, ,0, 'Э050', arg];
+ fMVSTK:cur@ := [, , '17', UTM, arg];
+ fOVFL: _(
+  cur@ := [,1, '15', VTM, 'ОV'];
+   addInst;
    mapia(lineNum, v32);
-   v31@ := [, , '14', VTM, v32];
- 12355: L12130;
+   cur@ := [, , '14', VTM, v32];
+ 12355: addInst;
  _goto 12211;
  _);
- 23: _(
- v31@ := [, , a32.f2, XTA, a32.f1];
- a32.ek := ek3;
+ fCALL1: _(
+ cur@ := [, , ret.reg, XTA, ret.off];
+ ret.ek := ek3;
  _goto 12355
  _)
  _end; (* 12421 *)
 _);
-(* L 3 *) _proced P12422(a31, a32:alfa; a33: int; _var a34:expr);
+(* L 3 *) _proced P12422(a31, a32:alfa; a33: int; _var ret:expr);
 _var v31:pInst; v32:alfa; _(
  mkInst(v31);
  mapia(a33, v32);
- v31@ := [ a34.in, 0, a31, a32, v32];
- a34.in := v31;
+ v31@ := [ ret.in, 0, a31, a32, v32];
+ ret.in := v31;
 _);
 (* L 3 *) _proced L12445(_var ret:expr);
 _var v31:int; _(
  v31 := 23;
  _if ret.ty@.k = kFile _then _(
- _if ret.f5 = 1 _then  v31 := 3
- _else _if ret.f2.i = 0 _then _(
- _if ret.f1.i = 7 _then v31 := 0
- _else _if ret.f1.a = BP _then _(
-   v31 := 3;
-   ret.f2.i := 0;
-   ret.f1.a := 'Z64';
- _)
- _)
+   _if ret.inv = 1 _then  v31 := 3
+   _else _if ret.reg = O _then _(
+     _if ret.off = '7' _then v31 := 0
+     _else _if ret.off = BP _then _(
+       v31 := 3;
+       ret.reg := O;
+       ret.off := 'Z64';
+     _)
+   _)
  _);
-  P11512(v31, ret);
+  form1(v31, ret);
  _);
 (* L 3 *) _proced store(_var ret:expr);
 _(
  _if ret.ek = ek2 _then _(
    putInsn('17ЗЧ');
-   P12143(16, ret, '15');
+   form2(fSETREG, ret, '15');
    putInsn('17СЧ'); putInsn('15ЗЧ');
    exit
  _);
- P12143(4, ret, ATX);
+ form2(fCMD, ret, ATX);
  dump(ret.in);
 _);
 (* L 3 *) _proced load(_var ret:expr);
 _label 12556, 12557;
 _var v31, v32:alfa;  v33:int; _(
  _if ret.ty = boolType _then _case ret.ek _of
- ekCONST: _if ret.f5 = 0 _then P11512(0, ret) _else P11512(1, ret);
- ek1: _(  P11512(3, ret); _if ret.f5 # 0 _then P11512(2, ret) _);
- ek2:  _if ret.f1.a # label _then _(
+ ekCONST: _if ret.inv = 0 _then form1(0, ret) _else form1(1, ret);
+ ek1: _(  form1(3, ret); _if ret.inv # 0 _then form1(2, ret) _);
+ ek2:  _if ret.off # label _then _(
    TNL(v31);
-   P12143(3-ret.f5, ret, v31);
+   form2(fUZA-ret.inv, ret, v31);
    12556: v33 := 1;
    12557: TNL(v32);
-   P11512(v33, ret);
-   P12143(1, ret, v32);
-   P12143(0, ret, v31);
-   P11512(1-v33, ret);
-   P12143(0, ret, v32);
-  _) _else _if ret.f5 # 0 _then P11512(2, ret);
+   form1(v33, ret);
+   form2(fGOTO, ret, v32);
+   form2(fLAB, ret, v31);
+   form1(1-v33, ret);
+   form2(fLAB, ret, v32);
+  _) _else _if ret.inv # 0 _then form1(2, ret);
  ek3: _(
-   v31 := ret.f1.a;
-   _if ret.f5 = 0 _then _goto 12556
+   v31 := ret.off;
+   _if ret.inv = 0 _then _goto 12556
    _else v33 := 0;
    _goto 12557
  _)
  _end _else _( (* 12624 *)
    _if ret.ek # ek3 _then _(
-    P11512(3, ret);
+    form1(3, ret);
     ret.ek := ek3;
     exit
    _)
@@ -2187,9 +2205,9 @@ _);
 (* L 3 *) _proced P12713(_var a31, a32: expr; a33:alfa);
 _(
   load(a31);
-  P11512(19, a31);
+  form1(19, a31);
   load(a32);
-  P12143(15, a32, a33);
+  form2(fVJM14, a32, a33);
   append(a31.in, a32.in);
   a31.in := a32.in;
 _);
@@ -2199,26 +2217,26 @@ _label 12747, 12752, 12775, 13013, 13045;
  _case a33.ek _of
  ekCONST, ek1: _case a34.ek _of
    ekCONST, ek1: 12747: _(
-   P11512(3, a33);
+   form1(3, a33);
  12752:
  append(a33.in, a34.in);
  g35z := l3a5z;
- P12143(4, a34, a31);
+ form2(fCMD, a34, a31);
  a33 := [3, , , , a34.in, 0];
    _);
    ek2: _(
-   P11512(3, a34);
+   form1(3, a34);
    _if a32 _then _(
   12775:
    append(a34.in, a33.in);
  g35z := l3a5z;
- P12143(4, a33, a31);
+ form2(fCMD, a33, a31);
  a33 := [3, , , , , 0];
  _) _else 13013: _(
-  P11512(19, a34);
-  _if (a33.ek # ek3) _then  P11512(3, a33);
-  a33.f1.i := 0;
-  a33.f2.a := '17';
+  form1(19, a34);
+  _if (a33.ek # ek3) _then  form1(3, a33);
+  a33.off := O;
+  a33.reg := '17';
   _goto 12775;
  _); (* 13027 *)
    _);
@@ -2226,7 +2244,7 @@ _label 12747, 12752, 12775, 13013, 13045;
  _end;
  ek2: _case a34.ek _of
    ekCONST,ek1: _goto 12747;
-   ek2: 13045: _( P11512(3, a34); _goto 13013 _);
+   ek2: 13045: _( form1(3, a34); _goto 13013 _);
    ek3: _goto 13013 _end;
  ek3: _case a34.ek _of
    ekCONST, ek1: _goto 12752;
@@ -2240,27 +2258,27 @@ _);
  _(
  _if a31.ty = intType _then _(
  _if a31.ek = ekCONST _then _(
-   rval := L7314(a31.f1.a);
+   rval := L7314(a31.off);
    cv := ;
-   putConst(a31.f1.a, F);
+   putConst(a31.off, F);
  _) _else _(
-  _if (a31.ek # ek3) _then P11512(3, a31);
-  P11512(18, a31);
+  _if a31.ek # ek3 _then form1(3, a31);
+  form1(18, a31);
  _)
  _)
 _);
-(* L F13134 *) _function F13134(a31:alfa; a32:bool; _var a33, a34:expr):bool;
+(* L 3 *) _function F13134(a31:alfa; a32:bool; _var a33, a34:expr):bool;
 _label 13153, 13155;
 _var v31, v32:idptr; _(
  v31 := a33.ty;
  v32 := a34.ty;
- _if (v31 = realType) _then _(
- _if (v32 = realType) _then _goto 13155;
- _if (v32 = intType) _then toReal(a34 )
+ _if v31 = realType _then _(
+ _if v32 = realType _then _goto 13155;
+ _if v32 = intType _then toReal(a34 )
  _else 13153: _( F13134 := T;  exit _);
  13155:
- _)_else _if (v31 # intType) _then _goto 13153
- _else _if (v32 = realType) _then _(
+ _)_else _if v31 # intType _then _goto 13153
+ _else _if v32 = realType _then _(
     toReal(a33);
     a33.ty := realType;
  _) _else _goto 13153;
@@ -2272,40 +2290,40 @@ _var v31, v32:idptr; _(
 _label 13246, 13261, 13323, 13462;
 _var v31:alfa; v32:int; v33:expr; _(
  _if a31 _then _(
-   a32.f5 := ord(odd(a32.f5+1));
-   a33.f5 := ord(odd(a33.f5+1));
+   a32.inv := ord(odd(a32.inv+1));
+   a33.inv := ord(odd(a33.inv+1));
  _);
  _case a32.ek _of
  ekCONST: (* 13213 *) _case a33.ek _of
-   ekCONST: _if a32.f5+a33.f5 # 2 _then a32.f5 := 0;
-   ek1, ek2, ek3: _if a32.f5 = 0 _then a33.in := _NIL _else a32 := a33
+   ekCONST: _if a32.inv+a33.inv # 2 _then a32.inv := 0;
+   ek1, ek2, ek3: _if a32.inv = 0 _then a33.in := _NIL _else a32 := a33
  _end;
  ek1: (* 13245 *) _case a33.ek _of
-   ekCONST: 13246: _if a33.f5 = 0 _then a32 := [0, , , , _NIL, 0];
-   ek1, ek2: _( P11512(3, a32);
-     13261: _if a32.f5 = 0 _then v32 := 3 _else v32 := 2;
+   ekCONST: 13246: _if a33.inv = 0 _then a32 := [0, , , , _NIL, 0];
+   ek1, ek2: _( form1(3, a32);
+     13261: _if a32.inv = 0 _then v32 := 3 _else v32 := 2;
      TNL(v31);
-     P12143(v32, a32, v31);
-     _if a33.ek = ek1 _then P11512(3, a33);
-     _if a33.f5 = 0 _then v32 := 3 _else v32 := 2;
-     P12143(v32, a33, v31);
+     form2(v32, a32, v31);
+     _if a33.ek = ek1 _then form1(3, a33);
+     _if a33.inv = 0 _then v32 := 3 _else v32 := 2;
+     form2(v32, a33, v31);
      appInst(a32, a33);
      a32.in := a33.in;
      a32 := [3, v31, , , , 0];
    _);
    ek3: 13323: _(
-   _if a32.f5 = 0 _then v32 := 3 _else v32 := 2;
-   _if a33.f5 = 0 _then _(
-    _if a32.ek = ek1 _then P11512(3, a32);
-    P12143(v32, a32, a33.f1.a);
-    a32.f1 := a33.f1;
+   _if a32.inv = 0 _then v32 := 3 _else v32 := 2;
+   _if a33.inv = 0 _then _(
+    _if a32.ek = ek1 _then form1(3, a32);
+    form2(v32, a32, a33.off);
+    a32.off := a33.off;
    _) _else _(
     TNL(v31);
-    P12143(1, a33, v31);
-    P12143(0, a33, a33.f1.a);
-    _if a32.ek = ek1 _then P11512(3, a32);
-    P12143(v32, a32, v31);
-    a32.f1.a := v31;
+    form2(fGOTO, a33, v31);
+    form2(fLAB, a33, a33.off);
+    _if a32.ek = ek1 _then form1(3, a32);
+    form2(v32, a32, v31);
+    a32.off := v31;
    _);
    appInst(a33, a32);
    a32 := [3, , , , , 0];
@@ -2325,35 +2343,35 @@ _var v31:alfa; v32:int; v33:expr; _(
    _goto 13323;
    _);
    ek3:
-   _if a33.f5 = a32.f5 _then _(
-    _if a33.f5 = 0 _then _(
-     P11450(a33.in, a33.f1.a, a32.f1.a);
+   _if a33.inv = a32.inv _then _(
+    _if a33.inv = 0 _then _(
+     replace(a33.in, a33.off, a32.off);
      13462:
      appInst(a32, a33);
      a32.in := a33.in;
     _) _else _(
      TNL(v31);
-     P12143(1, a32, v31);
-     P12143(0, a32, a32.f1.a);
-     P12143(0, a33, v31);
+     form2(fGOTO, a32, v31);
+     form2(fLAB, a32, a32.off);
+     form2(fLAB, a33, v31);
      appInst(a32, a33);
-     a32 := [, a33.f1, , , a33.in];
+     a32 := [, a33.off, , , a33.in];
  _)
  _) _else _(
-  _if a32.f5 = 0 _then _(
-   P12143(1, a33, a32.f1.a);
-   P12143(0, a33, a33.f1.a);
+  _if a32.inv = 0 _then _(
+   form2(fGOTO, a33, a32.off);
+   form2(fLAB, a33, a33.off);
   _) _else _(
-   P12143(1, a32, a33.f1.a);
-   P12143(0, a32, a32.f1.a);
-   a32.f1 := a33.f1;
+   form2(fGOTO, a32, a33.off);
+   form2(fLAB, a32, a32.off);
+   a32.off := a33.off;
   _);
-  a32.f5 := 0;
+  a32.inv := 0;
   _goto 13462;
  _)
  _end
  _end;
- _if a31 _then a32.f5 := ord(odd(a32.f5+1));
+ _if a31 _then a32.inv := ord(odd(a32.inv+1));
 _);
 (* L 3 *) _proced L13566(_var a31:alfa);
  _(
@@ -2376,7 +2394,7 @@ _var v31:idptr; v32:alfa; _(
  putInsn(v32);
  mapia(l2v28z, v32);
  L3656('14ПА', v32);
- _if a32 _then L5312(a31@.nm)
+ _if a32 _then putName(a31@.nm)
 _else  g41z := 'ВСS';
  L3656('15ПА', g41z);
  putAlign('16ПВЩП');
@@ -2389,13 +2407,13 @@ _else  g41z := 'ВСS';
   v31@.k = kSc: _(
  putInsn('17ЗЧ');
  L5425(v31);
- L3656('14ПА', v31@.f8.a);
+ L3656('14ПА', v31@.lbl);
  putInsn('ВИ14');
  v32 := '12ПА10';
  putInsn(v32);
  mapia(l2v28z, v32);
  L3656('14ПА', v32);
- _if a32 _then  L5312(a31@.nm)
+ _if a32 _then  putName(a31@.nm)
  _else g41z := 'ВСS';
  L3656('15ПА', g41z);
  putAlign('16ПВЩП');
@@ -2427,29 +2445,29 @@ _var v31:int; v32:alfa; v33, v34:pinst; _(
  _) _else _( (* 14013 *)
   v31 := v31-1;
   mapia(v31, v32);
-  P12143(16, a32, '12');
-  P12143(16, a31, '16');
-  P4357(14, v32);
+  form2(fSETREG, a32, '12');
+  form2(fSETREG, a31, '16');
+  P4357(14, v32);                               % multi-word copy
  _) (* 14030 *)
 _);
 
 _proced factor(_var ret:expr);+
 _proced doExpr(_var ret:expr);+
 
-(* L 3 *) _proced P14226(a31:idptr; _var a32:pinst);
+(* L 3 *) _proced actPar(a31:idptr; _var a32:pinst);
 _label 14357, 14370, 14374;
 (*=a1*)_const param='ПАРАМ';(*=a0*)
 _var v31:expr;
 v37:alfa; l3v8z:bool;
-l3v9z, l3v10z:bool;
+isProc, noParam:bool;
 l3v11z, l3v12z, v3D, v3E:int; l3v15z:idptr;
 l3v16z:idptr; l3v17z:idptr;  l3v18z:pInst; l3v19z:int;
 
 (* L 4 *) _proced L14031(a41:idptr);
 _var v41:alfa; v42:alfa; v43, v44:alfa; v45:idptr; l4v6z:int; _(
  _if a41@.bas # _NIL _then _(
-  P11512(0, v31);
-  v31.in@ := [, , a41@.lev, , a41@.f8 ];
+  form1(0, v31);
+  v31.in@ := [, , a41@.lev, , a41@.hi ];
  _) _else _(
  _if a41@.k = kSc _then _(
  _if g40z = O _then _(  cv.i := 2; putConst(g40z, F) _);
@@ -2468,7 +2486,7 @@ _var v41:alfa; v42:alfa; v43, v44:alfa; v45:idptr; l4v6z:int; _(
  putInsn(v42); ГГ('17СА');
  _if a41@.f10 > 1 _then  ГГ(v42);
  putSep; modBase; ГГ('16ПАВП', 6);
- putSep; modBase; ГГ(UJ, a41@.f9);
+ putSep; modBase; ГГ(UJ, a41@.orignm);
  align; ГГ('С;', v44); write(icolon);
 _if v45 # _NIL _then_(
 _repeat
@@ -2482,34 +2500,34 @@ _repeat
  P4357(0, v41);
  _); (* 14202 *)
  _if modeX _then _(
- P12143(1, v31, '000000');
+ form2(fGOTO, v31, O);
  v31.in@.op := UTC;
  _);
- P12143(7, v31, curId@.off);
- P12143(11, v31, VJM);
+ form2(fVTM15, v31, curId@.off);
+ form2(fCALL, v31, VJM);
 _) (* 14225 *)
 _);
-_( (* P14226 *)
-  l3v10z := a31@.bas = _NIL;
-  l3v9z := a31@.vty = _NIL;
+_( (* actPar *)
+  noParam := a31@.bas = _NIL;
+  isProc := a31@.vty = _NIL;
   v3E := 0;
-  _if l3v9z _then  l3v11z := 3 _else  l3v11z := 4;
-  _if ~l3v10z  _then  l3v11z := l3v11z+2;
-  _if l3v10z & (a31@.f10 >= 2) | ~l3v10z _then _(
+  _if isProc _then  l3v11z := 3 _else  l3v11z := 4;
+  _if ~noParam  _then  l3v11z := l3v11z+2;
+  _if noParam & (a31@.f10 >= 2) | ~noParam _then _(
     v31.in := _NIL;
     mapia(l3v11z, v37);
-    P12143(20, v31, v37);
+    form2(fMVSTK, v31, v37);
     a32 := v31.in;
   _) _else a32 := _NIL;
   _if prev = oparen _then _(
-    _if l3v10z  _then _(
+    _if noParam  _then _(
       l3v16z := a31@.f7.id;
       _if l3v16z = _NIL _then _( l3v11z := 0; prErr(param, l3v11z);exit _)
     _);
    _repeat
     v3E := v3E+1;
     l3v8z := T;
-    _if l3v10z & (a31 = l3v16z) _then _( prErr(param, 1); skipTo([0,1,2]); exit _);
+    _if noParam & (a31 = l3v16z) _then _( prErr(param, 1); skipTo([0,1,2]); exit _);
     lookup := 2;
     getT;
     v31.in := _NIL;
@@ -2524,7 +2542,7 @@ _( (* P14226 *)
         _)
       _)  _else _(
         l3v15z := curId;
-        _if ~l3v10z _then _(
+        _if ~noParam _then _(
           g63z := T;
           factor(v31);
           _if v31.ek = ekCONST _then _(
@@ -2553,7 +2571,7 @@ _( (* P14226 *)
         l3v17z := v31.ty
       _) _else _goto 14374;
     _); (* 14422 *)
-    _if l3v10z _then _(
+    _if noParam _then _(
       _if (ord(l3v16z@.cl) # l3v19z) _then _(
         _if (l3v16z@.cl = cConst) & (l3v19z = 2) _then _(
           l3v19z := 1;
@@ -2573,64 +2591,64 @@ _( (* P14226 *)
         l3v8z := F;
       _)
     _); (* 14474 *)
-    _if ~l3v10z _then _(
+    _if ~noParam _then _(
       _if ~(l3v19z = 3) _then  v3D := l3v19z;
       cv.i := v3D;
-      P11512(27, v31);
+      form1(27, v31);
     _) _else  l3v16z := l3v16z@.bas;
     _if l3v8z & (v3E # 1) _then _(
       l3v18z := v31.in;
       v31.in := a32;
-      P11512(19, v31);
+      form1(19, v31);
       a32 := v31.in;
       v31.in := l3v18z;
     _);
     append(a32, v31.in);
     a32 := v31.in;
    _until prev # comma;
-    _if (l3v10z & (l3v16z # a31)) | (prev # cparen) _then prErr(param, (6) )
+    _if (noParam & (l3v16z # a31)) | (prev # cparen) _then prErr(param, (6) )
     _else getT;
   _) _else _( (* 14545 *)
-    _if l3v10z & ~(a31@.f7.id = _NIL) _then  prErr(param, (7));
+    _if noParam & ~(a31@.f7.id = _NIL) _then  prErr(param, (7));
   _); (* 14553 *)
   v31.in := a32;
   MAPЯГА(a31@.nm, v37);
-  _if a31@.f9 = v37 _then P11512(19, v31);
-  _if l3v10z _then _(
-    P12143(5, v31, a31@.f9);
+  _if a31@.orignm = v37 _then form1(19, v31);
+  _if noParam _then _(
+    form2(5, v31, a31@.orignm);
     v31.in@.au := auSETINT;
     v37 := a31@.lev;
-    _if a31@.f8.a = extern _then _(
-      P11512(26, v31);
+    _if a31@.lbl = extern _then _(
+      form1(26, v31);
       v31.in@.m := label;
     _)
   _) _else _( (* 14607 *)
     _if v3E = 0 _then _(
       v31.in@ := [, , 0, XTA, 0];
-      v3D := (l3v11z+1);
+      v3D := l3v11z+1;
       mapia(v3D, v37);
-      P12143(10, v31, v37);
+      form2(fPUSH, v31, v37);
     _) _else _(
-      P11512(26, v31);
-      v31.in@.op := 'СМ';
-      P12143(10, v31, '1');
+      form1(26, v31);
+      v31.in@.op := XTS;
+      form2(fPUSH, v31, '1');
       v3D := -(2*v3E+l3v11z); (* ineff *)
       mapia(v3D, v37);
-      P12143(20, v31, v37);
+      form2(fMVSTK, v31, v37);
     _); (* 14651 *)
     mapia(lineNum, v37);
-    P12143(7, v31, v37);
+    form2(fVTM15, v31, v37);
     v31.ty := a31;
-    P11512(24, v31);
+    form1(24, v31);
     v37 := '1';
   _); (* 14665 *)
-  P12143(12, v31, v37);
-  _if ~l3v9z _then _(
-    mapia(l3v11z-1, v31.f1.a);
-    P11512(10, v31);
+  form2(fFIXRT, v31, v37);
+  _if ~isProc _then _(
+    mapia(l3v11z-1, v31.off);
+    form1(10, v31);
   _);
   a32 := v31.in;
-  _if l3v9z _then  dump(a32);
+  _if isProc _then  dump(a32);
 _);
 
 (* L 3 *) _proced LValue(_var ret:expr);+
@@ -2666,11 +2684,11 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
  chkComma;
  doExpr(v37);
  l3v19z := v37.ek = ekCONST;
- _if l3v19z _then  l3v20z := L7314(v37.f1.a);
+ _if l3v19z _then  l3v20z := L7314(v37.off);
  _if a31 # 2 _then _(
    doExpr(v3D);
    _if v3D.ek # ekCONST _then  oshibka(2);
-   l3v22z := L7314(v3D.f1.a);
+   l3v22z := L7314(v3D.off);
    _if (l3v22z < 1) | (l3v22z > 47) _then oshibka(7);
    l3v24z := [48-l3v22z..47];
  _); (* 15020 *)
@@ -2680,7 +2698,7 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
    _if l3v19z _then _(
      _if l3v20z # 0 _then P12422(O, ASN, 100B+l3v20z, v31);
    _) _else _(
-     P12143(4, v37, WTC);
+     form2(fCMD, v37, WTC);
      P12422(O, ASN, 100B, v37);
      appInst(v31, v37);
      v31.in := v37.in;
@@ -2698,11 +2716,11 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
      l3v21z := -l3v20z;
      _if v31.ek = ekCONST _then_(
        l3v26z := T;
-       l3v30z := L7314(v31.f1.a);
+       l3v30z := L7314(v31.off);
        l3v30z := shift(l3v30z, l3v21z);
        cv := ;
        putConst(l3v28z, F);
-       v31.f1.a := l3v28z;
+       v31.off := l3v28z;
      _);
      l3v24z := shift(l3v24z, l3v21z);
      l3v24z := [0..47]-l3v24z;
@@ -2720,22 +2738,22 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
      l3v31z := a32;
      load(v31);
      P12422(O, ASN, 100B-l3v20z, v31);
-     P11512(19, v31);
+     form1(19, v31);
      P12741(AEX, T, v31, a32, 0);
      dump(a32.in);
      ГГ('10ЛУ', l3v27z); putSep;
      putInsn('17СР');
      store(l3v31z);
    _) _else _if l3v19z _then _(
-     _if (v31.f2.i = 0) & (v31.in = _NIL) _then load(v31)
+     _if (v31.reg = O) & (v31.in = _NIL) _then load(v31)
      _else _(
        load(v31);
        P12422(O, ASN, 100B-l3v20z, v31);
      _);
-     P11512(19, v31);
+     form1(19, v31);
      dump(v31.in);
      l3v29z := a32.ek;
-     P11512(12, a32);
+     form1(12, a32);
      dump(a32.in);
      _if l3v29z = ek2 _then _(
        putInsn('15СЧ'); putInsn('17СР-1')
@@ -2746,12 +2764,12 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
    _) _else (sel) _(
      load(v31);
      cv.b := l3v24z;
-     P11512(27, v31);
-     P11512(19, v31);
+     form1(27, v31);
+     form1(19, v31);
      load(v37);
-     P11512(19, v37);
+     form1(19, v37);
      appInst(v31, v37);
-     P11512(12, a32);
+     form1(12, a32);
      appInst(v37, a32);
      extras[17] := UTC;
      dump(a32.in);
@@ -2796,7 +2814,7 @@ _( (* stdCall *)
       stProc _IN [0..13,16..21]: doExpr(ret);
       ~L14707(ret): stFerr(9)
     _end;
-    ret.f5 := 0;
+    ret.inv := 0;
     v44 := ret.ty;
     (sel) _select
       ret.ty@.k = kRng: _( ret.ty := ret.ty@.bas; _goto sel _);
@@ -2822,88 +2840,88 @@ _( (* stdCall *)
   _); (* 15564 *)
   _case stProc _of
   0, 1, 2, 3, 4, 5, 6: (*15565*) _(           % SQRT, SIN, COS, ARCTAN, ARCSIN, LN, EXP
-    _if checkMode = 1 _then  P11512(18, ret);
-    P12143(19, ret, chr(stProc));
+    _if checkMode = 1 _then  form1(18, ret);
+    form2(fMATH, ret, chr(stProc));
   _);
   7: (*15577*) _(                             % ABS
-    P11512(26, ret);
-    ret.in@ := [, 3-(2*checkMode), , 'МВ'];
+    form1(26, ret);
+    ret.in@ := [, 3-2*checkMode, , 'МВ'];
   _);
-  8: (*15611*) P11512(4, ret);                % TRUNC
+  8: (*15611*) form1(4, ret);                % TRUNC
   9: (*15615*) _(                             % ODD
-    P11512(20, ret);
-    ret.ek := ek2; ret.f1.a := label
+    form1(20, ret);
+    ret.ek := ek2; ret.off := label
   _);
   10: (*15624*)                               % ORD
     _if ret.ty = boolType _then  load(ret);
   11, 16: (*15631*) _( _);                    % CHR, PTR
-  12, 13: (* 15632 *) P11512(stProc+9, ret);  % SUCC, PRED
+  12, 13: (* 15632 *) form1(stProc+9, ret);  % SUCC, PRED
   14: (* 15637 *)                             % EOF
-    _if ret.f2.i = 0 _then _(
-      _if ret.f1.i = 7 _then _(
+    _if ret.reg = O _then _(
+      _if ret.off = '7' _then _(
         cv.a := chr(172B);
         putConst(v34, F);
-        P11512(0, ret);
+        form1(0, ret);
         ret.in@ := [, , 1, , 7];
-        P11512(2, ret);
+        form1(2, ret);
         ret.in@.a := v34;
-        ret.f5 := 1;
+        ret.inv := 1;
         ret.ek := ek2;
       _) _else _(
         ret := [0, '13', 0, , _NIL, 1];
       _)
     _) _else _( (* 15700 *)
-      _if ret.f5 = 0 _then alfAdd(ret.f1.a, 2)
-      _else _( P12143(23, ret, ITA);
+      _if ret.inv = 0 _then alfAdd(ret.off, 2)
+      _else _( form2(fCALL1, ret, ITA);
         ret.ek := ek2;
         extras[9] := ;
-        ret.f1.a := label;
+        ret.off := label;
       _)
     _);
   15: _( L12445(ret); ret.ek := ek3 _);       % REF
   17: _(                                      % SQR
-    P11512(19, ret);
-    _if  checkMode = 1 _then  P11512(16, ret);
-    P12143(9, ret, MUL);
+    form1(19, ret);
+    _if  checkMode = 1 _then  form1(16, ret);
+    form2(fSTKOP, ret, MUL);
     ret.in@.au := auFL-2*checkMode;
-    _if checkMode = 1 _then  P11512(17, ret);
+    _if checkMode = 1 _then  form1(17, ret);
   _);
   18: _(                                      % ROUND
-    P12143(11, ret, ADD);
+    form2(fCALL, ret, ADD);
     ret.in@.au := auSETINT;
     extras[12] := ;
   _);
   20: _(                                      % CARD
-    P11512(26, ret);
+    form1(26, ret);
     ret.in@.op := 'ВЧ'
   _);
   21: _(                                      % MINEL
-    P11512(26, ret); ret.in@.op := 'ВН';
-    P11512(1, ret); ret.in@.op := SUB;
+    form1(26, ret); ret.in@.op := 'ВН';
+    form1(1, ret); ret.in@.op := SUB;
   _);
   22: _(                                      % EOLN
     cv.a := chr(175B);
     putConst(v34, F);
-    _if ret.f2.i = 0 _then _(
-      _if ret.f1.i = 7 _then _(
-        P11512(0, ret);
+    _if ret.reg = O _then _(
+      _if ret.off = '7' _then _(
+        form1(0, ret);
         ret.in@ := [, , 1, , 7];
       _) _else  stFerr(3);
     _) _else _(
-      _if ret.f5 = 1 _then _(
+      _if ret.inv = 1 _then _(
         load(ret);
-        P12143(11, ret, VTM);
-        P11512(0, ret);
+        form2(fCALL, ret, VTM);
+        form1(0, ret);
         ret.in@ := [, 1, '15' ];
       _) _else _(
-        _if ret.ty@.pck = 0 _then alfAdd(ret.f1.a, 1);
-        P12143(4, ret, WTC);
-        P11512(8, ret);
+        _if ret.ty@.pck = 0 _then alfAdd(ret.off, 1);
+        form2(fCMD, ret, WTC);
+        form1(8, ret);
       _);
     _); (* 16064 *)
-    P11512(2, ret);
+    form1(2, ret);
     ret.in@.a := v34;
-    ret.f5 := 1;
+    ret.inv := 1;
     ret.ek := ek2;
   _);
   23: _(                                      % SHIFT
@@ -2942,9 +2960,9 @@ _);
 (* L 5 *) _proced L16214;
  _(
  _if v33 _then _(
-   P11512(8, ret);
+   form1(8, ret);
    l4v13z := ret.in;
-   P11512(19, ret);
+   form1(19, ret);
    v33 := F;
  _);
  load(v41);
@@ -2965,8 +2983,8 @@ _( (* P16240 *)
        L16170(l4v7z);
 
        _if (v41.ek = ekCONST) & (l4v7z.ek = ekCONST) _then  _(
-         l4v15z := L7314(v41.f1.a);
-         l4v16z := L7314(l4v7z.f1.a);
+         l4v15z := L7314(v41.off);
+         l4v16z := L7314(l4v7z.off);
          _if (l4v15z < 0)
          | (l4v15z > 47)
          | (l4v16z < 0)
@@ -2975,20 +2993,20 @@ _( (* P16240 *)
          _else mkRng(l4v15z, l4v16z);
        _) _else _(
          L16214;
-         P11512(19, v41);
+         form1(19, v41);
          load(l4v7z);
          appInst(v41, l4v7z);
-         P12143(11, l4v7z, ATX);
+         form2(fCALL, l4v7z, ATX);
          ret.in := l4v7z.in;
        _); (* 16343 *)
      _) _else _( (* 16344 *)
        _if v41.ek = ekCONST _then _(
-         l4v15z := L7314(v41.f1.a);
+         l4v15z := L7314(v41.off);
          _if (l4v15z < 0) | (l4v15z > 47) _then prErr(mnojit, 0) (* bad set element *)
           _else mkElem(l4v15z);
        _) _else _(
          L16214;
-         P12143(11, v41, XTA);
+         form2(fCALL, v41, XTA);
          ret.in := v41.in;
        _)
      _)
@@ -2999,10 +3017,10 @@ _( (* P16240 *)
      putConst(v34, F);
    _);
    _if v33 _then _(
-     _if bits # [] _then  ret.f1.a := v34;
+     _if bits # [] _then  ret.off := v34;
    _) _else _(
      _if bits # [] _then  l4v13z@.a := v34;
-     P11512(0, ret);
+     form1(0, ret);
      ret.in@.m := '17';
      ret.in@.a := O;
      ret.ek := ek3;
@@ -3020,8 +3038,8 @@ _( (* factor *)
       P7520(v31, v34, F);
       _if (v31 = _NIL) _then  factErr(2); (* not a constant *)
       ret := [0, v34, 0, v31, _NIL, 0];
-      _if modeX _then  ret.f2.a := BP;
-      _if (v31 = boolType) & (v34 # '12') _then  ret.f5 := 1;
+      _if modeX _then  ret.reg := BP;
+      _if (v31 = boolType) & (v34 # '12') _then  ret.inv := 1;
     _)
   _);
   tk0: _(
@@ -3034,7 +3052,7 @@ _( (* factor *)
       getT;
       factor(ret);
       _if ret.ty # boolType _then  factErr(4); (* not a bool *)
-      ret.f5 := ord(odd(ret.f5+1));
+      ret.inv := ord(odd(ret.inv+1));
       exit
     _) _else _if prev = obrack _then P16240 _else  factErr(5); (* wrong delimiter *)
   _);
@@ -3062,12 +3080,12 @@ _( (* factor *)
       _if v31@.lev = O _then  stdCall
       _else _(
         _if v31@.vty = _NIL _then  factErr(10);
-        P14226(v31, ret.in);
+        actPar(v31, ret.in);
         ret.ek := ek3;
-        ret.f5 := 0;
+        ret.inv := 0;
         _if v31@.vty = boolType _then_(
           ret.ek := ek2;
-          ret.f1.a := label;
+          ret.off := label;
         _);
       _);
       ret.ty := v31@.vty;
@@ -3134,9 +3152,9 @@ l3v25z := T;
  _if tokKind = tkField _then _with withs[curWith] _do _(
    v31 := ty;
    l3v20z := ek;
-   l3v10z := f1.a;
-   v3D := f2.a;
-   l3v21z := f5;
+   l3v10z := off;
+   v3D := reg;
+   l3v21z := inv;
    _if in = _NIL _then l3v16z := _NIL
    _else _(
      mkInst(l3v16z);
@@ -3171,18 +3189,18 @@ l3v25z := T;
  _case v31@.k _of
  kPtr: _(
    l3v25z := F;
-   _if (prev = arrow) _then _( v31 := v31@.bas; _goto 17005 _) _else _goto 17057;
+   _if prev = arrow _then _( v31 := v31@.bas; _goto 17005 _) _else _goto 17057;
  _);
  kRec: _(
  l3v25z := F;
- _if (prev # dot) _then _goto 17057 _else _(
+ _if prev # dot _then _goto 17057 _else _(
    lookup := 3;
    g77z := v31;
    getT;
    _if (tokKind # tkField) | (curId = _NIL) _then LvalErr(1); (* not a field *)
 17042:
    l3v25z := F;
-   alfAdd(l3v10z, curId@.f8.i);
+   alfAdd(l3v10z, curId@.hi);
    v31 := curId@.f6.id;
    _goto 17015;
  _)_);
@@ -3192,7 +3210,7 @@ l3v25z := T;
   ret := [l3v20z, l3v10z, v3D, v31, l3v16z, l3v21z];
  _if (v31 = boolType) & (l3v20z = ek2) _then _(
    L16651(1);
-   ret.f1.a := label;
+   ret.off := label;
    ret.in := l3v16z;
    l3v16z@.op := XTA;
  _);
@@ -3213,7 +3231,7 @@ l3v25z := T;
    alfAdd(l3v10z, l3v22z);
    l3v23z := v32@.sz;
    _if v34.ek = ekCONST _then _(
-     l3v22z :=   L7314(v34.f1.a);
+     l3v22z :=   L7314(v34.off);
      _if (l3v22z < v33@.lo) | (l3v22z > v33@.hi) _then prErr(perem, 3); (* const index out of range *)
      _if l3v23z # 1 _then  l3v22z := l3v22z*l3v23z;
      alfAdd(l3v10z, l3v22z);
@@ -3221,21 +3239,21 @@ l3v25z := T;
      _if modeT & ~typeCheck(v34.ty, v33) _then _(
        load(v34);
        mkCheck(v33, T);
-       P12143(22, v34, v33@.nm);
+       form2(fOVFL, v34, v33@.nm);
      _);
      _if l3v23z # 1 _then _(
-       g41z := v31@.f8.a;
+       g41z := v31@.lbl;
        load(v34);
-       P11512(5, v34);
+       form1(5, v34);
        _if v33@.pck >= 0 _then v34.in@ := [, , 0, YTA, '30'];
      _);
      _if l3v16z = _NIL _then _(
      _if v34.ek = ek3 _then _(
         v34 := [2, 0, '17'];
-        P12143(4, v34, ATX);
+        form2(fCMD, v34, ATX);
         l3v20z := ek2;
      _) _else  l3v20z := v34.ek;
-     P12143(4, v34, WTC);
+     form2(fCMD, v34, WTC);
      l3v16z := v34.in;
     _) _else _(
       v3E := l3v16z@.nxt;
@@ -3259,7 +3277,7 @@ l3v25z := T;
             _if v34.ek = ek2 _then load(v34);
             v34 := [, 0, '17'];
           _);
-          P12143(4, v34, ADD);
+          form2(fCMD, v34, ADD);
           append(l3v16z, v34.in);
           l3v16z := v34.in;
           _goto 17266;
@@ -3271,7 +3289,7 @@ l3v25z := T;
             mkInst(l3v15z);
             l3v15z@ := v3E@;
           _);
-          P12143(4, v34, ADD);
+          form2(fCMD, v34, ADD);
           v34.in@.au := auINT;
           v3E@.nxt := v34.in;
           append(l3v15z, l3v16z);
@@ -3307,14 +3325,14 @@ l3v25z := T;
   _end;
   LvalErr(13); (* unreached *)
 _);
-(* L 3 *) _proced L17503(_var ret:expr);
+(* L 3 *) _proced term(_var ret:expr);
 _label 17511, 17636, 17676;
 _const imod = 'MOD'; term = (*=a1*)'TERM'(*=a0*);
 _var v31, v32:int;
 v33, v34:idptr;
 v35:expr; l3v11z:int;
 l3v12z:bitset;
-(* L 4 *) _proced L17446;
+(* L 4 *) _proced termErr;
 _(
   prErr(term, v31);
 _);
@@ -3322,8 +3340,8 @@ _);
 (* L 4 *) _proced L17467;
 (* L 5 *) _proced L17454(_var a51:expr);
 _(
- _if a51.ek # ek3 _then  P11512(3, a51);
- P11512(18, a51);
+ _if a51.ek # ek3 _then  form1(3, a51);
+ form1(18, a51);
 _);
 
 _( (* L17467 *)
@@ -3332,7 +3350,7 @@ _( (* L17467 *)
  P12741(DIV, F, ret, v35, 3);
  _);
 
-_( (* L17503 *)
+_( (* term *)
   _if g63z _then g63z := F _else  factor(ret);
 17511:
   _if prev = semi _then exit;
@@ -3362,57 +3380,57 @@ _( (* L17503 *)
     _if v33@.k # kSet _then _(
     _if ~((v33 # v34) | (v33 # intType)) _then _(
       load(ret);
-      _if ~(modeM  | (v35.f2.i # 0) | (v35.in # _NIL)) _then _(
-        v32 :=   L7314(v35.f1.a);
+      _if ~(modeM  | (v35.reg # O) | (v35.in # _NIL)) _then _(
+        v32 :=   L7314(v35.off);
         l3v12z := ;
         _if (v32 > 0) & (card(l3v12z) = 1) _then_(
           v32 := minel(l3v12z)+17;
-          mapia(v32, v35.f1.a);
+          mapia(v32, v35.off);
           P12741(ASN, T, ret, v35, 1);
           _goto 17636;
         _)
       _);
-      P11512(16, ret);
+      form1(16, ret);
       P12741(MUL, T, ret, v35, 1);
-      P11512(17, ret);
+      form1(17, ret);
 17636:
       ret.ty := intType;
-      _) _else _if F13134(MUL, T, ret, v35) _then  L17446;
+      _) _else _if F13134(MUL, T, ret, v35) _then  termErr;
     _) _else _goto 17676
   _);
   1: _if (v33 = v34) & (v33 = intType) _then _(
        L17467;
        ret.ty := realType;
-     _) _else _if F13134(DIV, F, ret, v35) _then  L17446;
+     _) _else _if F13134(DIV, F, ret, v35) _then  termErr;
   2:  _if (v33 = v34) & (v33 = boolType) _then  P13176(F, ret, v35 )
-      _else 17676:  _if modeC & ~F12677(v33, v34) _then L17446
+      _else 17676:  _if modeC & ~F12677(v33, v34) _then termErr
       _else P12741(AAX, T, ret, v35, 0);
-  3: _if (v33 # v34) | (v33 # intType) _then L17446
+  3: _if (v33 # v34) | (v33 # intType) _then termErr
      _else _(
-       _if ~(modeM | (v35.f2.i # 0) | (v35.in # _NIL)) _then _(
-         v32 :=   L7314(v35.f1.a);
+       _if ~(modeM | (v35.reg # O) | (v35.in # _NIL)) _then _(
+         v32 :=   L7314(v35.off);
          l3v12z := ;
          _if  v32 > 1 _then _(
            _if card(l3v12z) = 1 _then _(
              v32 := 111-minel(l3v12z);
-             mapia(v32, v35.f1.a);
+             mapia(v32, v35.off);
              P12741(ASN, T, ret, v35, 1);
              _exit case;
            _) _else _(
              cv.i := inverse(v32);
-             putConst(v35.f1.a, F);
+             putConst(v35.off, F);
              P12741(MUL, T, ret, v35, 1);
              _exit case;
            _)
          _)
        _);
        L17467;
-       P11512(4, ret);
+       form1(4, ret);
      _);
   4: _if (v33 = v34) _then _(
        _if (v33 = intType) _then _(
-         _if ~modeM & (v35.f2.i = 0) & (v35.in = _NIL) _then _(
-           v32 :=   L7314(v35.f1.a);
+         _if ~modeM & (v35.reg = O) & (v35.in = _NIL) _then _(
+           v32 :=   L7314(v35.off);
            l3v12z := ;
            _if (v32 > 1) &  (card(l3v12z) = 1) _then _(
              v32 := 47-minel(l3v12z);
@@ -3423,13 +3441,13 @@ _( (* L17503 *)
              cv := ;
              putConst(g41z, F);
              load(ret);
-             P11512((28), ret);
+             form1((28), ret);
              _exit case;
          _)_);
          P12713(ret, v35, imod);
        _) _else _if v33@.k = kSet _then P12741(AEX, T, ret, v35, 0)
-       _else (q) _( L17446; _exit q _)
-     _) _else L17446
+       _else (q) _( termErr; _exit q _)
+     _) _else termErr
   _end;
   _goto 17511
 _);
@@ -3454,11 +3472,11 @@ _( (* sexpr *)
      getT;
    _) _else  _if prev = plus _then _goto 20076;
  _);
- L17503(ret);
+ term(ret);
  _if v31 _then _(
    _if (ret.ty # realType) & ~typeCheck(ret.ty, intType) _then  sexpErr(0);
-   _if ret.ek # ek3 _then  P11512(3, ret);
-   P11512(6, ret);
+   _if ret.ek # ek3 _then  form1(3, ret);
+   form1(6, ret);
    _if ret.ty = realType _then  ret.in@.au := auFL;
  _);
 20131: _if tokKind = tk0 _then _(
@@ -3474,7 +3492,7 @@ _( (* sexpr *)
  _);
  lookup := 2;
  getT;
- L17503(v35);
+ term(v35);
  v33 := ret.ty;
  _if v33@.k = kRng _then _( v33 := v33@.bas; ret.ty :=; _);
  v22 := v35.ty;
@@ -3491,7 +3509,7 @@ _( (* sexpr *)
  1:
  _if v33@.k # kSet _then _( v32 := SUB; v31 := F; _goto 20206 _)
  _else _if F12677(v33, v22) _then _(
-   load(v35); P12143(17, v35, UTC); P12741(AAX, T, ret, v35, 0);
+   load(v35); form2(fEQ, v35, UTC); P12741(AAX, T, ret, v35, 0);
  _) _else  sexpErr(2);
  2: _if (v33 = v22) & (v33 = boolType) _then  P13176(T, ret, v35 )
  _else  20266:
@@ -3524,19 +3542,19 @@ _(
  lookup := 2;
  getT;
  _if (op = 6) & (tokKind = tkIdent) & (curId # _NIL) & (curId@.cl = cType) _then _(
-   _if curId@.k = kCases _then  curId := curId@.bas;
+   _if curId@.k = kAlias _then  curId := curId@.bas;
    _if ret.ty@.k = kFile _then  prErr(eErr, 20);
    _if curId@.k # kRng _then  prErr(eErr, 0);
    mkCheck(curId, T);
    load(ret);
    TNL(v35);
-   P12143(8, ret, v35);
+   form2(8, ret, v35);
    ret.in@.au := auINT;
-   P12143(5, ret, curId@.nm);
+   form2(5, ret, curId@.nm);
    ret.ek := ek3;
    ret.ty := boolType;
-   ret.f1.a := v35;
-   ret.f5 := 0;
+   ret.off := v35;
+   ret.inv := 0;
    getT;
  _) _else _(
    sexpr(l3v9z);
@@ -3559,21 +3577,21 @@ _(
   _case op _of
   0, 1: _(
    load(l3v9z);
-   P11512(19, l3v9z);
+   form1(19, l3v9z);
    load(ret);
-   P11512(19, ret);
+   form1(19, ret);
    ret.in@.op := AEX;
    appInst(l3v9z, ret);
    ret := [2, , , , , op];
   _);
   2, 3: _(
-   ret.f5 := ord(odd(ret.f5+1));
+   ret.inv := ord(odd(ret.inv+1));
 20547:
    P13176(F, ret, l3v9z);
-   _if (op = 3) | (op = 5) _then ret.f5 := ord(odd(ret.f5+1));
+   _if (op = 3) | (op = 5) _then ret.inv := ord(odd(ret.inv+1));
   _);
  4, 5: _(
-  l3v9z.f5 := ord(odd(l3v9z.f5+1));
+  l3v9z.inv := ord(odd(l3v9z.inv+1));
   _goto 20547;
  _);
  6: _goto 20651
@@ -3582,7 +3600,7 @@ _(
   0, 1: _( v36 := '14'; v35 := AEX; v34 := T; v32 := 1_);
   2, 3: _if l3v8z@.k = kSet _then _(
     load(ret);
-    P12143(17, ret, UTC);
+    form2(fEQ, ret, UTC);
 20621:
     v34 := T;
     v35 := AAX;
@@ -3597,7 +3615,7 @@ _(
  4, 5:
    _if l3v8z@.k = kSet _then _(
      load(l3v9z);
-     P12143(17, l3v9z, UTC);
+     form2(fEQ, l3v9z, UTC);
      _goto 20621;
    _) _else _(
      v35 := RSUB;
@@ -3606,11 +3624,11 @@ _(
    _);
  6:  20651: _(
    load(ret);
-   P11512(19, ret);
+   form1(19, ret);
    load(l3v9z);
    appInst(ret, l3v9z);
    ret.in := l3v9z.in;
-   P12143(11, ret, WTC);
+   form2(fCALL, ret, WTC);
    ret.in@.au := auSETINT;
   _)
  _end;
@@ -3622,10 +3640,10 @@ _(
      P12713(ret, l3v9z, v35);
      ret.in@.au := auSETINT;
      ret.in@.m := v36;
-     _if v35 = AEX _then  ret.f1.a := label;
+     _if v35 = AEX _then  ret.off := label;
    _) _else _(
      P12741(v35, v34, ret, l3v9z, v32);
-     _if v32 = 3 _then  P11512(15, ret);
+     _if v32 = 3 _then  form1(15, ret);
    _)
   _) _else _(
      P12741(v35, v34, ret, l3v9z, 1);
@@ -3686,8 +3704,8 @@ zpvro='16ПВRО';zpvpo='16ПВРО';zpvgi='16ПВGI';zpvri='15ПВRI';zpvpr='16
 (*=a1*)wri='WRITE'(*=a0*);
 _var v41:int; v42:alfa;
 v43:alfa;
-v44:alfa; v45:int; l4v6z:alfa;
-l4v7z, l4v8z, l4v9z, l4v10z, l4v11z:bool;
+v44, v45, l4v6z:alfa;
+flag, savT, l4v9z, l4v10z, l4v11z:bool;
 (*=c+*)
 (* L 5 *) _proced L21070(a51:int);
  _(
@@ -3798,17 +3816,17 @@ _( (* standProc *)
      exit
    _) _else 21420: _(
      _if (curId@.cl # cVar) | (curId@.vty@.k # kFile) _then L21070(8);
-     l4v7z := curId@.bas # _NIL;
+     flag := curId@.bas # _NIL;
      _if modeDe & (curId@.nm = (*=a1*)'INР'(*=a0*)) & (v43 = 'GF') _then _(
         ГГ('16ПВ');
         putAlign('76312');
      _) _else _(
         ГГ(curId@.lev);
-        _if l4v7z _then ГГ(XTA) _else  ГГ(UTC);
+        _if flag _then ГГ(XTA) _else  ГГ(UTC);
         putInsn(curId@.off);
-       _if ~l4v7z _then  putInsn('15ПА');
+       _if ~flag _then  putInsn('15ПА');
        ГГ('16ПВ');
-       _if l4v7z _then _( extras[10] := UTC; ГГ('F') _);
+       _if flag _then _( extras[10] := UTC; ГГ('F') _);
        putAlign(v43);
      _);
      _goto 21410;
@@ -3840,7 +3858,7 @@ _( (* standProc *)
  _);
  4, 21: _(                                    % NEW, DISPOSE
    P21311(e1, _NIL);
-   l4v7z := T;
+   flag := T;
    dynMem := dynMem+1;
    _if e1.ty@.k # kPtr _then _GOTO 23710;
    t1 := e1.ty@.bas;
@@ -3848,7 +3866,7 @@ _( (* standProc *)
    _if prev = eq _then _(
      doExpr(e2);
      _if ~typeCheck(e2.ty, intType)  _then  prErr(v36, 4);
-     l4v7z := F;
+     flag := F;
    _) _else _( (* 21574 *)
      _if t1@.k = kRec _then _(
        _if prev = semi _then _(
@@ -3856,7 +3874,7 @@ _( (* standProc *)
          lookup := 3;
          getT;
          _if curId = _NIL _then prErr(v36, 18)
-         _else _( v37 := curId@.f8.i+1; getT_)
+         _else _( v37 := curId@.hi+1; getT_)
        _) _else _(
          t1 := t1@.bas;
         _while (prev = comma) & (t1 # _NIL) _do _(
@@ -3870,7 +3888,7 @@ _( (* standProc *)
             t2 := t1@.vty;
             _while (t2 # _NIL) & (v42 # t2@.lev) _do t2 := t2@.vty;
              _if t2 = _NIL _then _(
-               v37 := t1@.f8.i+1;
+               v37 := t1@.hi+1;
                t1 := _NIL;
              _) _else _(
                v37 := t2@.f6.i;
@@ -3879,37 +3897,37 @@ _( (* standProc *)
            _)
         _)
     _)_)_);
-    P12143(16, e1, '14');
+    form2(fSETREG, e1, '14');
     mapia(v37, v42);
-    _if l4v7z _then_( ГГ('12ПА'); putInsn(v42) _)
+    _if flag _then_( ГГ('12ПА'); putInsn(v42) _)
     _else _( L12635(e2); putInsn('УИ12')  _);
     _if v41 = 4 _then putAlign('16ПВАL')
     _else _( putAlign('16ПВDS'); extras[1] := UTC_);
     _goto 21412;
  _);
- 5: _( l4v7z := F; v42 := 'UN'; _goto 21731_);% UNPCK
- 6: _( l4v7z := T; v42 := 'РА'; 21731:        % PCK
+ 5: _( flag := F; v42 := 'UN'; _goto 21731_);% UNPCK
+ 6: _( flag := T; v42 := 'РА'; 21731:        % PCK
    t1 := charType;
    t2 := alfaType;
-   l4v8z := modeT;
+   savT := modeT;
    modeT := F;
    P21311(e1, t1);
    _if prev # comma _then  L21070(13);
    P21311(e2, t2);
-   _if l4v7z _then _(
-     P11512(12, e1);
-     P12143(11, e1, v42);
+   _if flag _then _(
+     form1(12, e1);
+     form2(fCALL, e1, v42);
      e1.ek := ek3;
      g101z := T;
      P13734(e2, e1);
    _) _else _(
-     P11512(12, e1);
+     form1(12, e1);
      load(e2);
      appInst(e1, e2);
-     P12143(11, e2, v42);
+     form2(fCALL, e2, v42);
      dump(e2.in);
    _);
-   modeT := l4v8z;
+   modeT := savT;
    _goto 21412;
  _);
  7: _(                                        % EXIT
@@ -3922,7 +3940,7 @@ _( (* standProc *)
    _);
    v42 := tok;
    tok := O;
-   l4v7z :=   doTarget('1');
+   flag :=   doTarget('1');
    tok := v42;
  _);
  8: putAlign('16ПВРR');                       % PRINTO
@@ -3963,7 +3981,7 @@ _( (* standProc *)
    _repeat
      doExpr(e1);
      load(e1);
-     P12143(15, e1, v42);
+     form2(fVJM14, e1, v42);
      dump(e1.in);
    _until (prev # comma);
    _goto 21412;
@@ -4005,14 +4023,14 @@ _( (* standProc *)
    _goto 22235;
  _);
  19: 22254: _(                                % WRITE
-   l4v7z := T;
+   flag := T;
    l4v9z := ;
    _repeat
    lookup := 2;
    g58z := T;
    getT;
    g58z := F;
-   l4v6z := 'СМ';
+   l4v6z := XTS;
    _if (tokKind = tkStr) _then _(
      v42 := tok;
      getT;
@@ -4031,16 +4049,16 @@ _( (* standProc *)
    _) _else _( (* 22324 *)
      g62z := F;
      doExpr(e1);
-     _if l4v7z & (e1.ty@.k = kFile) _then _(
-       _if e1.f2.i # 0 _then _(
+     _if flag & (e1.ty@.k = kFile) _then _(
+       _if e1.reg # O _then _(
          _if typeCheck(e1.ty, textFile) _then _(
            l4v9z := F;
-           v44 := e1.f2.a;
-           v45 := e1.f1.i;
-           l4v10z := e1.f5 = 0;
+           v44 := e1.reg;
+           v45 := e1.off;
+           l4v10z := e1.inv = 0;
          _) _else prErr(wri, 3);
        _) _else _(
-         _if e1.f1.i = 7 _then  prErr(wri, 1);
+         _if e1.off = '7' _then  prErr(wri, 1);
        _)
      _) _else _( (* 22363 *)
        _if e1.ty@.k = kRng _then  e1.ty := e1.ty@.bas;
@@ -4053,7 +4071,7 @@ _( (* standProc *)
          L5425(e1.ty);
          P21077(6, F);
          L12635(e1);
-         putInsn('УИ14'); ГГ('14СА', e1.ty@.f8.a); putSep;
+         putInsn('УИ14'); ГГ('14СА', e1.ty@.lbl); putSep;
          modBase;
          putInsn('14СЧ');
          L21145('WА');
@@ -4061,7 +4079,7 @@ _( (* standProc *)
        _else prErr(wri, 2);
    _)_); (* 22453 *)
    curAU := 1;
-   l4v7z := F;
+   flag := F;
    _until prev # comma;
    l4v6z := XTA;
    _if v41 = 20 _then  L21145('WL');
@@ -4074,7 +4092,7 @@ _( (* standProc *)
  _);
  22, 23: L21070(0);                           % READ, READLN
  25, 26, 28: _(                               % PUTD, GETD, MODD
-   l4v7z := T;
+   flag := T;
 22500:
    mapia(v41-22, v43);
    _repeat
@@ -4082,7 +4100,7 @@ _( (* standProc *)
    _if  e1.ty@.k >= kArr _then  prErr(v36, 0);
    L12635(e1);
    putInsn('ИК5'); putInsn('11ПА'); putInsn('11ЗЧ10');
-   _if l4v7z _then _(
+   _if flag _then _(
      _if prev # comma _then  L21070(1);
      _if ~L14707(e1) _then  L21070(2);
      cv.i := e1.ty@.sz;
@@ -4107,7 +4125,7 @@ _( (* standProc *)
    extras[14] := ;
    _goto 21412;
  _);
- 24, 27: _( l4v7z := F; _goto 22500 _);       % OPEND, DELD
+ 24, 27: _( flag := F; _goto 22500 _);       % OPEND, DELD
  29: L21070(3);                               % NEWD
  30: _(                                       % BIND
    modBase;
@@ -4138,27 +4156,27 @@ _);
 _label 22750;
 _(
  _case a41.ek _of
- ekCONST:  _if a41.f5 = 0 _then  P4357(1, a42);
+ ekCONST:  _if a41.inv = 0 _then  P4357(1, a42);
  ek2: _goto 22750;
  ek1: _(
-   P11512(3, a41);
+   form1(3, a41);
 22750:
    dump(a41.in);
-   P4357(3-a41.f5, a42);
+   P4357(3-a41.inv, a42);
  _);
- ek3: _if a41.f5 = 0 _then _(
-   P11450(a41.in, a41.f1.a, a42);
+ ek3: _if a41.inv = 0 _then _(
+   replace(a41.in, a41.off, a42);
    dump(a41.in);
  _) _else _(
    dump(a41.in);
    P4357(1, a42);
-   P4357(0, a41.f1.a);
+   P4357(0, a41.off);
  _)
  _end
 _);
 (* L 4 *) _proced doCase;
 _label 23252, 23326, 23333;
-_type item = _record f0:@item; f1:int; f2, f3: alfa _end;
+_type item = _record f0:@item; off:int; f2, f3: alfa _end;
 _var v41, v42, v43, v44, v45:@item;
  l4v6z:bool; l4v7z:int; _(
  l4v7z := lineNum;
@@ -4184,14 +4202,14 @@ _var v41, v42, v43, v44, v45:@item;
       _if t2 = _NIL _then t2 := t1
       _else _if t1 # t2 _then  prErr(case, 1);
       new(v42, 4);
-      v42@.f1 := L7314(v32);
-      v37 := v42@.f1;
+      v42@.off := L7314(v32);
+      v37 := v42@.off;
       v42@.f2 := v33;
       v42@.f3 := v32;
       v44 := v41;
       (loop) _while v44 # _NIL _do _(
-        _if v37 < v44@.f1 _then _exit loop
-        _else _if v37 = v44@.f1
+        _if v37 < v44@.off _then _exit loop
+        _else _if v37 = v44@.off
         _then _(  prErr(case, 2); _exit loop _)
         _else _( v45 := v44; v44 := v44@.f0 _);
       _);
@@ -4229,7 +4247,7 @@ _var v41, v42, v43, v44, v45:@item;
   v37 := 0;
   v44 := v41;
   _while v44 # _NIL _do _(
-    _if v37 = v44@.f1 _then _(
+    _if v37 = v44@.off _then _(
       v37 := v37+1;
       v44 := v44@.f0;
     _) _else _goto 23333;
@@ -4264,10 +4282,10 @@ _var v41, v42, v43, v44, v45:@item;
    display(e1.ty, F);
  _);
  _while v44 # _NIL _do _(
- ГГ(BP, AEX); putInsn(v44@.f3);
- ГГ(BP, 'У0'); putInsn(v44@.f2);
- v44 := v44@.f0;
- _if v44 # _NIL _then _(  idxBase; putInsn('СЧ1') _);
+   ГГ(BP, AEX); putInsn(v44@.f3);
+   ГГ(BP, 'У0'); putInsn(v44@.f2);
+   v44 := v44@.f0;
+   _if v44 # _NIL _then _(  idxBase; putInsn('СЧ1') _);
  _);
  _goto 23326;
 _);
@@ -4283,7 +4301,7 @@ _( (* doStmt *)
    l3v8z := T;
    _if l2v17z # 0 _then  prErr(to, 10);
    _while l3v32z # l2v26z _do _(
-     _if l3v32z@.num # g26z _then l3v32z := l3v32z@.nxt
+     _if l3v32z@.num # ival _then l3v32z := l3v32z@.nxt
      _else _(
        l3v8z := F;
        _if l3v32z@.def _then _(  cv.i := l3v32z@.line; prErr(to, 3)_)
@@ -4344,12 +4362,12 @@ _( (* doStmt *)
    _if l2v17z # 0 _then  prErr(to, 10);
    l3v32z := labList;
    _while l3v32z # _NIL _do _(
-     _if l3v32z@.num = g26z _then _goto 23611
+     _if l3v32z@.num = ival _then _goto 23611
      _else  l3v32z := l3v32z@.nxt;
    _); prErr('ТО', 4);
 23611: (*=a0*)
    _if modeG _then _(
-     mapia(g26z, g41z);
+     mapia(ival, g41z);
      L3656('12ПА', g41z);
      mapia(lineNum, g41z);
      L3656('14ПА', g41z);
@@ -4461,7 +4479,7 @@ _( (* doStmt *)
 24134:
    _if prev # asg _then _(
      e2 := [0, '13', 0, e1.ty, _NIL, 0];
-     _if modeX _then  e2.f2.a := BP;
+     _if modeX _then  e2.reg := BP;
    _) _else _(
      doExpr(e2);
      _if e1.ty@.k = kRng _then  e1.ty := e1.ty@.bas;
@@ -4539,12 +4557,12 @@ _( (* doStmt *)
       _else _(
         nWith := nWith+1;
         _if (e1.in # _NIL) & (e1.in@.nxt # _NIL) _then _(
-          P11512(23, e1);
+          form1(23, e1);
           dump(e1.in);
           e1 := [1, v2B, level, , _NIL];
           store(e1);
           e1 := [, 0, 0, , _NIL];
-          P11512(25, e1);
+          form1(25, e1);
           l2v15z := succ(l2v15z);
           mapia(l2v15z, v2B);
         _); (* 24505 *)
@@ -4608,19 +4626,19 @@ _( (* doStmt *)
  v36 := to;
  _if curId = _NIL _then _( v37 := 5; _goto 23711 _);
  _if curId@.cl = cFun _then _(
-   lhs := g88z;
+   lhs := dummyId;
    t1 := curId;
    getT;
    _if t1@.lev = O _then _( standProc; _goto 25141 _);
    _if t1@.vty # _NIL _then _(
      e1.ek := ek1;
-     e1.f1.i := 3;
+     e1.off := '3';
      mapai(t1@.lev, v37);
-     mapia(v37+1, e1.f2.a);
+     mapia(v37+1, e1.reg);
      e1.ty := t1@.vty;
      e1.in := _NIL;
-     e1.f5 := 0;
-   _) _else _( P14226(t1, l3v11z); _goto 25141 _)
+     e1.inv := 0;
+   _) _else _( actPar(t1, l3v11z); _goto 25141 _)
  _) _else _(
    _if curId@.cl # cVar _then _if ((curId@.cl # cConst) | (curId@.bas = _NIL))
    _then _( v37 := 6; _goto 23711 _);
@@ -4635,8 +4653,8 @@ _( (* doStmt *)
  g62z := F;
  _if (e1.ty@.k = kRec) & (prev = obrack) _then _(
    load(e1);
-   e1.in@.op := utc;
-   P11512(13, e1);
+   e1.in@.op := UTC;
+   form1(13, e1);
    dump(e1.in);
    v31 := O;
    (loop) _(
@@ -4650,7 +4668,7 @@ _( (* doStmt *)
          g62z := F;
          doExpr(e2);
          load(e2);
-         P12143(14, e2, v31);
+         form2(fST11, e2, v31);
          dump(e2.in);
          _goto wh
        _);
@@ -4677,59 +4695,59 @@ _( (* doStmt *)
    load(e2);
  _) _else _if (e1.ty@.k = kRng) & (e1.ty@.bas = e2.ty) _then _(
    _if e2.ek = ekCONST _then _(
-     v37 := L7314(e2.f1.a);
+     v37 := L7314(e2.off);
      _if (v37 < e1.ty@.lo) | (v37 > e1.ty@.hi)
      _then prErr('ГР ДИА', 0 );
    _) _else _if modeT _then _(
      load(e2);
-     P12143(22, e2, e1.ty@.nm);
+     form2(fOVFL, e2, e1.ty@.nm);
    _)
  _)_else
    prErr(to, 1); (* 25123 *)
  _if (e1.ek = ek2) & (e1.ty = boolType) _then _(
    l3v11z := e1.in;
    e1.in := l3v11z@.nxt;
-   e1.f1.a := l3v11z@.a;
-   e1.f2.a := l3v11z@.m;
+   e1.off := l3v11z@.a;
+   e1.reg := l3v11z@.m;
  _);
  P13734(e1, e2);
 25141: rollup(l3v10z)
 _);
 (* L 3 *) _proced header;
-_var v31:idptr; v32:int; v33:alfa; v34:int;
+_var prog:idptr; v32:int; v33:alfa; v34:int;
 (* L 4 *) _proced hdrErr(a41:int);
 _(
  prErr('ЗАГОЛ', a41);
  skipTo([1,2]);
 _);
-(*=c- L 4 *) _proced P25153;
+(*=c- L 4 *) _proced params;
 _type nuzzzz = 100000B..671420B; len = 1..40B;
-_var v41:@extFile; v42:int; (*=c+*) _(
+_var ef:@extFile; v42:int; (*=c+*) _(
  v42 := 0;
  _repeat
    getT;
    _if tokKind # tkIdent _then _( hdrErr(3); exit _);
-   v41 := g105z;
+   ef := extFList;
    _if (tok = 'INРUТ') | (tok = 'ОUТРUТ') _then prErr(to, 9);
-   _while v41 # _NIL _do _(
-     _if v41@.nm = tok _then  prErr(to, 7);
-     v41 := v41@.nxt;
+   _while ef # _NIL _do _(
+     _if ef@.nm = tok _then  prErr(to, 7);
+     ef := ef@.nxt;
    _);
-   new(v41);
-   v41@ := [tok, , 0, 0, g105z];
-   g105z := v41;
+   new(ef);
+   ef@ := [tok, , 0, 0, extFList];
+   extFList := ef;
    getT;
    _if prev = eq _then _(
      getT;
      _if tokKind # tkInt _then  hdrErr(4);
-     _if g26z _IN nuzzzz _then v41@.f1.i := g26z _else prErr(to, 8);
+     _if ival _IN nuzzzz _then ef@.nuz := ival _else prErr(to, 8);
      getT;
      _if tokKind # tkInt _then  hdrErr(4);
-     _if g26z _IN len _then v41@.f2.i := g26z _else prErr(to, 8);
+     _if ival _IN len _then ef@.len := ival _else prErr(to, 8);
      getT;
    _) _else (* 25267 *) _(
      v42 := v42+1;
-     v41@.f1.i := v42;
+     ef@.nuz := v42;
    _)
  _until prev # comma;
  mapia(v42, g106z);
@@ -4754,7 +4772,7 @@ _);
 
 _( (* header *)
   getT;
-  new(v31,13);
+  new(prog,13);
   _if modeX  _then  basReg := BP;
   _if ~modeC _then _(
    v2D := 0;
@@ -4769,23 +4787,23 @@ _( (* header *)
    getT;
    _if (tokKind # tkIdent) _then hdrErr(1)
    _else _(
-     v31@.nm := tok;
+     prog@.nm := tok;
      getT;
-     _if prev = oparen _then  P25153;
+     _if prev = oparen _then  params;
      _if prev # semi _then hdrErr(2) _else getT;
    _)
   _);(*=a0*)
-  v31@.f9 := DIV;
-  v31@.f8.a := UTM;
-  v31@.f7.id := _NIL;
-  v31@.f10 := 0;
+  prog@.orignm := DIV;
+  prog@.lbl := UTM;
+  prog@.f7.id := _NIL;
+  prog@.f10 := 0;
   v33 := '12';
   _if modeL _then ГГ('ПВ;``К') _else ГГ('В;` `К');
   write('Д=0000,ЗАГР=77040,LОАD,UNLОАD,СН,Ч=12,LI=4,ИА=74000,УРЕГ=ИА(3),Z0=УРЕГ(2),ПБИ15,ЕF,Н,Т,Е,ОС=Е(5),SL=ОС(2),Z64,РR=SL(10),МОD=РR(3),VR,СПТ,СПЛ,RF=VR(5),ЧМ1,ГТ=RF(5),RС=ГТ(6),СР=RС(4),АВ,ОВ,RWF,СТХТ=ОВ(5),WS,WС,WА,WВ,WI,WR,WL,ОWS,ОWС,ОWА,ОWВ,ОWI,ОWR,ОWL,ИК=ОWL(2),СЧ,ЗЧ,ЦУ=74136,ТR=74141,D=74145,N=74151,РА=74173,R=74202,АL=74206,GI=74222,RI=74251,РО=74257,RО=74313,МI=74323,UN=74337,РF=74715,GF=74760,СL=75075,ГА=75104,ЯГА=75115,ТNL=75165,ОV=75241,IА=75361,АI=75363,ГГ=75365,Ф=75675,RSR=75714,');
   _if modeX _then
   write('DS=СН(3),Z1Z,Z2,Z3,Z4,Z5,Z6,Z7,ПА,ВИ,FРF,FGF,FRWF,FRF,FWS,FWС,FWА,FWВ,FWI,FWR,FWL,АС,ПБ,NА,ВА,ЕА,FА,ВD,Z8,ВП,ВП6,ВП7,ПВ,ОRF,');
   write('Н;КД,К;');
-  P26222(v33, v31);
+  P26222(v33, prog);
   P3330;
   _if g107z | g109z _then
   write('К;ЩРWR:ИАZРR0=ЗЧ,ВИ16=ВМ7,17ЗЧ=7ПА-17,ZРR1:ИАZРR0=СЧ,СД75=ИАZРR0,ЗЧ=СЧ13,17ЗЧ=МР,16ПВОWI=,7КЦZРR1=17СЧ,УИ7=17СЧ,УИ16=16ПБ,ZРR0:ЗЧ=ЗЧ,ZРR2:ЗЧ=ЗЧ42,');
@@ -4804,17 +4822,17 @@ _( (* header *)
   _);
   _if g103z _then
   write('К;ОWJ:10ИА=12ПВОСТL,ПБОWI=,WJ:10ИА=12ПВОСТL,ПБWI=,ОСТL:10ИА=14ПАЯЧ,14ЗЧ=10СЧ13,14ЗЧ1=СЧ,14ЗЧ3=,ПОВЬ:14СЧ=14ЛУ4,14ЗЧ2=ЛСZ64,14АУ1=МР30,14АС3=14ЗЧ3,14СЧ=14АВ2,СД103=10У0КН1,14ЗЧ=14СЧ1,СД77=17ЗЧ,СД76=17ЦС,14ЗЧ1=10ПБПОВЬ,КН1:14СЧ3=12ПБ,ЯЧ:ЗЧ=ЗЧ,ЗЧ=ЗЧ,ЗЧ=ЗЧ,ЗЧ=ЗЧ,ЗЧ=ЗЧ7,');
-  _if (g89z # -1) | (g90z # -1)_then _(
+  _if (extCnt # -1) | (entrCnt # -1)_then _(
     write('Л;ИМЕНА:ДВНУТ,У;А1,С;77777,ВНЕШ:');
     v34 := 0;
-    _while v34 <= g89z _do _(
-      ГГ('А;'); write(withSp(g4635z[v34])); ГГ(',С;0,');
+    _while v34 <= extCnt _do _(
+      ГГ('А;'); write(withSp(extSym[v34])); ГГ(',С;0,');
       v34 := v34+1;
    _);
    ГГ('С;0,'); write('ВНУТ:');
    v34 := 0;
-   _while v34 <= g90z _do _(
-     write('А;', withSp(g4736z[v34]), ',Л;Д'); ГГ(g4736z[v34]);
+   _while v34 <= entrCnt _do _(
+     write('А;', withSp(entryS[v34]), ',Л;Д'); ГГ(entryS[v34]);
      write(icomma);
      v34 := v34+1;
    _);
@@ -4823,13 +4841,13 @@ _( (* header *)
   write('Х:Н;11,С;');
   dumpConst(pool[9], pool[poolIdx]);
   write('Н;1,С;');
-  printOct(withSp(v31@.nm));
+  printOct(withSp(prog@.nm));
   write(icomma);
   printOct(getDate);
   write(icomma);
   write('Н;5,Л;ДХ,Н;7,К;10ПВУРЕГ=');
   _if modeX _then ГГ(UJ) _else ГГ(UTC);
-  _if (g89z # -1) | (g90z # -1) _then ГГ('ИМЕНА');
+  _if (extCnt # -1) | (entrCnt # -1) _then ГГ('ИМЕНА');
   putSep;
   write('10СА-10=10ПБАД,');
   P4511(7, UTM, v33);
@@ -4840,37 +4858,37 @@ _(
   prErr(block, a31);
   skipTo([1,2]);
 _);
-(*=c- L 3 *) _proced P25626;
-_var v31:alfa; v32:int; v33, v34:idptr; (*=c+*)
+(*=c- L 3 *) _proced formPMD;
+_var a:alfa; i:int; id, typ:idptr; (*=c+*)
 _(
- L5264(l2a2z@.nm);
+ forceName(l2a2z@.nm);
  P4511(5, g41z, '42');
  cv.i := lineNum;
- putConst(v31, T);
- v32 := 0;
- _while v32 <= 127 _do _(
-   v33 := idTable[v32];
-   _while (v33 # _NIL) & (v33 > l2a2z) _do _(
-     _if ~((v33@.cl # cVar) | (v33@.vty@.sz # 1))
-     | ~((v33@.cl # cConst) | (v33@.bas = _NIL)) _then _(
-       L5264(v33@.nm);
-       mapai(v33@.off, cv.i);
-       putConst(v31, T);
-       v34 := v33@.vty;
+ putConst(a, T);
+ i := 0;
+ _while i <= 127 _do _(
+   id := idTable[i];
+   _while (id # _NIL) & (id > l2a2z) _do _(
+     _if ((id@.cl = cVar) & (id@.vty@.sz = 1))
+     | ((id@.cl = cConst) & (id@.bas # _NIL)) _then _(
+       forceName(id@.nm);
+       mapai(id@.off, cv.i);
+       putConst(a, T);
+       typ := id@.vty;
        _select
-       v34 = realType: cv.i := 0;
-       v34 = alfaType: cv.i := 1;
-       v34 = charType: cv.i := 2;
+       typ = realType: cv.i := 0;
+       typ = alfaType: cv.i := 1;
+       typ = charType: cv.i := 2;
        T: cv.i := 3
        _end;
-       putConst(v31, T);
+       putConst(a, T);
      _);
-     v33 := v33@.nxt;
+     id := id@.nxt;
    _);
-   v32 := v32+1;
+   i := i+1;
  _);
  cv.i := 0;
- putConst(v31, T);
+ putConst(a, T);
 _);
 
 (*=c- L 3 *) _proced P25726;
@@ -4888,7 +4906,7 @@ _(
    l3v5z = boolType: l3v2z := 3;
    l3v5z = charType: l3v2z := 4;
    l3v5z = alfaType: l3v2z := 5;
-   l3v5z@.k = kSc: _( L5425(l3v5z); mapai(l3v5z@.f8.a, l3v2z) _);
+   l3v5z@.k = kSc: _( L5425(l3v5z); mapai(l3v5z@.lbl, l3v2z) _);
    l3v5z@.k = kSet: l3v2z := 6;
    T: l3v2z := 7
    _end
@@ -4903,14 +4921,14 @@ _(
      l3v5z@.cl = cFun:;
      (l3v6z = intType) | (l3v6z = realType) | (l3v6z = boolType)
      | (l3v6z = charType) | (l3v6z = alfaType):;
-     l3v6z@.k = kSc: _( L5425(l3v6z); mapai(l3v6z@.f8.a, l3v1z); l3v8a[l3v4z] := l3v1z _);
+     l3v6z@.k = kSc: _( L5425(l3v6z); mapai(l3v6z@.lbl, l3v1z); l3v8a[l3v4z] := l3v1z _);
      T:
      _end;
       l3v5z := l3v5z@.bas;
       l3v4z := l3v4z+1;
    _)
  _); (* 26043 *)
- L5264(l2a2z@.nm);
+ forceName(l2a2z@.nm);
  v2C := g41z;
  cv.i := l3v2z;
  putConst(g41z, T);
@@ -4986,7 +5004,7 @@ _( (* P26222 *)
    _if tokKind # tkInt _then prErr(block, 24)
    _else _(
      new(l2v25z);
-     l2v25z@.num := g26z;
+     l2v25z@.num := ival;
      l2v25z@.lev := level;
      l2v25z@.lab := O;
      l2v25z@.line := 0;
@@ -5071,7 +5089,7 @@ _( (* P26222 *)
         lookup := 0;
         getT;
         _if (tokKind # tkIdent) | ~known | (curId@.cl # cType) _then blkErr(31);
-        _if curId@.k = kCases _then curId := curId@.bas;
+        _if curId@.k = kAlias _then curId := curId@.bas;
         _if curId@.k > kRec _then blkErr(32);
         v21@.bas := curId;
         getT;
@@ -5082,7 +5100,7 @@ _( (* P26222 *)
     v2D := g25z;
     getT;
     _if prev # eq _then  blkErr(3);
-    parseType(0, l2v6z, v21, v2D );
+    parseType(0, l2v6z, v21, v2D);
 26607:
     _if prev # semi _then  blkErr(6);
     lookup := 0;
@@ -5121,7 +5139,7 @@ _( (* P26222 *)
      _if l2v31z = O _then _( TNL(l2v31z); P4357(0, l2v31z); write('ВМ14=17ЗЧ,') _)
      _else  P4357(0, l2v32z);
      TNL(l2v32z);
-     isFunc := (level = '1') & (g105z # _NIL);
+     isFunc := (level = '1') & (extFList # _NIL);
      _if isFunc _then _(
        g13z := T;
        _if g106z # O _then _( ГГ('15ПА', g106z ); write('=ВИ15,СР77765=У1Н,') _)
@@ -5133,24 +5151,24 @@ _( (* P26222 *)
        v22@.trace := F;
        ГГ('13',UTC,v2B); write('=15ПА,12ПА'); ГГ(l2v6z,'=11ПА',l2v8z,',14ПА',l2v7z,'=СЧ');
        _if isFunc _then (a) _(
-         g104z := g105z;
+         curExtF := extFList;
          (b) _(
            _repeat
-             _if g104z@.nm = v22@.nm _then _exit b;
-              g104z := g104z@.nxt;
-           _until g104z = _NIL;
+             _if curExtF@.nm = v22@.nm _then _exit b;
+              curExtF := curExtF@.nxt;
+           _until curExtF = _NIL;
            g12z := T;
            _exit a;
          _);
-         g104z@.f3.i := 1;
-         _if g104z@.f2.i = 0 _then _( (*=m+*)
-           l2v14z := -10-3*g104z@.f1.i;
+         curExtF@.def := T;
+         _if curExtF@.len = 0 _then _( (*=m+*)
+           l2v14z := -10-3*curExtF@.nuz;
            mapia(l2v14z, l2v9z);
            mapia(l2v14z+1, v2A)
          _) _else _(
-           cv := g104z@.f1;
+           cv.i := curExtF@.nuz;
            putConst(l2v9z, F);
-           cv := g104z@.f2;
+           cv.i := curExtF@.len;
            putConst(v2A, F)
          _);
          ГГ(l2v9z); write(',15ЗЧ3=СЧ'); ГГ(v2A);
@@ -5186,7 +5204,7 @@ _( (* P26222 *)
      _else _if curId@.f11 = _NIL _then _( blkErr(20); _GOTO 27721 _)
      _else _if curId@.lev # level _then  blkErr(21);
      l2v8z := level;
-     l2v7z := curId@.f8.a;
+     l2v7z := curId@.lbl;
      alfAdd(level, 1);
      v21 := curId;
      _if g76z = curId _then _( g76z := curId@.f11 _) _else _(
@@ -5210,8 +5228,8 @@ _( (* P26222 *)
    new(v21, 13);
    _if modeE _then _(
      MAPЯГА(tok, l2v6z);
-     g90z := g90z+1;
-     g4736z[g90z] := l2v6z;
+     entrCnt := entrCnt+1;
+     entryS[entrCnt] := l2v6z;
    _) _else TNL(l2v6z);
    TNL(l2v7z);
    v21@ := [tok, level, idTable[g25z], _NIL, cFun, _NIL, 0, _NIL, l2v7z, l2v6z, 0, _NIL];
@@ -5231,7 +5249,7 @@ _( (* P26222 *)
      (a) _case curId@.k _of
      kSc, kRng, kPtr, kSet: v21@.vty := curId;
      kArr, kRec, kFile: blkErr(18);
-     kCases: _( curId := curId@.bas; _goto a _)
+     kAlias: _( curId := curId@.bas; _goto a _)
      _end;
      getT;
    _); (* 27333 *)
@@ -5239,15 +5257,15 @@ _( (* P26222 *)
    isFunc := F;
    getT;
    _if tok = extern _then _(
-     g89z := g89z+1;
-     MAPЯГА(v21@.nm, g4635z[g89z]);
-     v21@.f8.a := extern;
-     (*=m-*)mapia(2*g89z, tok);
+     extCnt := extCnt+1;
+     MAPЯГА(v21@.nm, extSym[extCnt]);
+     v21@.lbl := extern;
+     (*=m-*)mapia(2*extCnt, tok);
      getT;
-     ГГ(v21@.f9); write(':15ПАВНЕШ('); ГГ(tok); write(')=ПБЗАГР,');
+     ГГ(v21@.orignm); write(':15ПАВНЕШ('); ГГ(tok); write(')=ПБЗАГР,');
      _goto 27420;
    _) _else (* 27364 *) _if prev = plus _then _(
-     v21@.f8.a := l2v7z;
+     v21@.lbl := l2v7z;
      v21@.f11 := g76z;
      g76z := v21;
      v21@.f12 := l2v5z;
@@ -5255,7 +5273,7 @@ _( (* P26222 *)
      _goto 27404;
 27375:
      TNL(l2v6z);
-     v21@.f8.a := l2v6z;
+     v21@.lbl := l2v6z;
      setup(l2v21z);
      l2v5z := l2v21z;
      isFunc := T;
@@ -5263,7 +5281,7 @@ _( (* P26222 *)
      P26222(l2v7z, v21);
      mapai(l2v7z, v2D);
      mapia(v2D-2, l2v7z);
-     P4511(7, v21@.f8.a, l2v7z);
+     P4511(7, v21@.lbl, l2v7z);
 27420:
      _if prev # semi _then  blkErr(10);
    _); (* 27423 *)
@@ -5310,7 +5328,7 @@ _( (* P26222 *)
     _if g12z _then  P4357(12, 'СПТ');
   _); (* 27560 *)
   _if l2v31z # O _then _(  putInsn(XTA); P4357(8, l2v31z); P4511(5, l2v31z, '61') _);
-  _if modeP _then P25626;
+  _if modeP _then formPMD;
   _if modeF & (level # '1') _then P25726;
   curLab := O;
   (*=c-*)mapai(v2B, l2v15z); l2v16z := ;(*=c+*)
@@ -5341,7 +5359,7 @@ _( (* P26222 *)
         write('В БЛОКЕ '); ГГ(l2a2z@.nm); write(' НЕТ ВХОЖД МЕТ');
         isFunc := F;
       _);
-      ГГ(sp); L3013(labList@.num);
+      ГГ(sp); wrInt(labList@.num);
    _);
    labList := labList@.nxt;
   _); _if ~isFunc _then writeln;
@@ -5353,8 +5371,8 @@ _(
   g91z := time;
   code(ЗЧ75776=);
   tok := sp;
-  new(g88z, 8);
-  g88z@.f7.i := 0;
+  new(dummyId, 8);
+  dummyId@.f7.i := 0;
   writeln(' ПАСКАЛЬ-АВТОКОД 9.(17.05.88)');
   P26222(tok, curId);
   _if errSeen _then 27721: prepErr(5);
