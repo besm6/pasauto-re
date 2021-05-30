@@ -98,7 +98,7 @@ _var
    idTable, idTabA: _array[0..127] _of idptr;
    withs: _array [0..18] _of expr;
    dummy:_array [1..4] _of char;
-   pool: _array[1..4096] _of word;
+   pool: _array[1..4096] _of int;
    labList:@labels; tchain:@typchain; extSym, entryS:_array [0..100] _of char;
    g4837z, g4838z:int;
 (*=c+*)
@@ -114,7 +114,7 @@ _(
     writeLN
   _)
 _);
-(*=c-*)_proced prepErr(i:int);(*=c+*)
+(*=c-*)_proced fatal(i:int);(*=c+*)
 _(
  rewrite(output);
  wrFName;
@@ -270,13 +270,18 @@ _(
   code(=11ПА-17,qqq1:2СЧ3=СД/-3/,2ЗЧ3=МР,); output@:=;put(output);code(11КЦqqq1=)
 _);
 
-(*=c- L 2*)_procedure P26222(_var l2a1z:alfa; _var l2a2z:idptr);
+(*=c- L 2*)_procedure programme(_var l2a1z:alfa; _var l2a2z:idptr);
 _label 26505, 26607, 26631, 27117, 27375, 27404, 27420;
 _const (*=a1*)block='БЛОК';
 arrow='@';dot='.';oparen='(';colon=':';semi=';';lt='<';gt='>';
 star='*';slash='/';minus='-'; plus='+';eq='=';neq='#';qu='''';
 comma=',';cparen=')'; obrack='[';cbrack=']';(*=a0*)
 c259=259;c258=258;e48=4T;
+% for form1
+fLD=3;fTRUNC=4;fNEG=6;fSUB=7;fZERO=8;fLDSTK=10;fLEA=11;fUVTM15=12;fVTM11=13;
+fAU23=15;fORZ64=16;fIMUL=17;fPSH=19;fMOD2=20;fADD1=21;fSUB1=22;fWTC=25;fEMPTY=26;
+fXTS=27;
+% for form2
 fLAB=0;fGOTO=1;fU1A=2;fUZA=3;fCMD=4;fBCALL=5;fVTM15=7;fBVTM15=8;fSTKOP=9;
 fPUSH=10;fCALL=11;fFIXRT=12;fST11=14;fVJM14=15;fSETREG=16;fEQ=17;fMATH=19;
 fMVSTK=20;fOVFL=22;fCALL1=23;
@@ -391,6 +396,9 @@ _var T:alfa; N:pInst; _(
      putInsn(T);
  _) _else _(
  _if (K@.m # O) _then  ГГ(K@.m);
+ % There is a way to write the condition below without resorting to
+ % disabling type checking, by using unions and bit sets;
+ % it results in differences using const 0 in location 0 vs the constant pool.
  _if (*=c-*)(K@.a & mask # 0) &
      (K@.a & 77774T = 0) &
      (K@.a & mask # mask) & (*=c+*)
@@ -613,9 +621,9 @@ v31 := 0;
  errcnt := 0;
  maxerr := 10;
  g43z := '11';
- pool[9].i := ord(_NIL);
- pool[9+1].i := 0;
- pool[9+2].i := 1;
+ pool[9] := ord(_NIL);
+ pool[9+1] := 0;
+ pool[9+2] := 1;
  poolIdx := 11;
  (*=a1*) seqGOST := 'А';
  MAPГA(seqGOST, seqITM);
@@ -764,7 +772,7 @@ _var v31:int; _(
  poolIdx := poolIdx+1;
  _if poolIdx >= 4096 _then sysErr(23);
 
- pool[poolIdx] := cv;
+ pool[poolIdx] := cv.i;
  mapia(poolIdx, offset);
  exit; code(done:ВИ5=);
  v31 := ;
@@ -919,7 +927,7 @@ lineNum := 1;
  exit;
  _);
  code(11CA2=12КЦL5601,);
- prepErr(4);
+ fatal(4);
 _);
  (* L 4 *) _proced escChar;
 _var v41:int; _(
@@ -940,8 +948,8 @@ _);
  input@ := chr(ival);
  _);
  (* L 4 *) _proced getId;
-_var t:word; i:int; _(
- t.a := O;
+_var t:alfa; i:int; _(
+ t := O;
  i := 1;
   _while (input@ _in letter) | (ord(input@) < 10) _do _(
  _if i < 7 _then _(
@@ -950,7 +958,7 @@ _var t:word; i:int; _(
  _);
  get(input);
  _);
- tok := t.a;
+ tok := t;
 _);
 (* L 4 *) _proced skipSp;
  _(
@@ -961,7 +969,7 @@ _label 5704;
 _var v41:char; _(
  5704:
  v41 := input@;
- _if v41 = chr(172B) _then prepErr(3);
+ _if v41 = chr(172B) _then fatal(3);
  get(input);
  _if (v41 = star) & (input@ = cparen) _then _(
  get(input);
@@ -1060,7 +1068,7 @@ _) _else _if input@ = '$' _then _(
     ival := lineNum;
  _);
  (l3v21z = 'INС') & ~skipping: _(
- _if inInclude _then  prepErr(2);
+ _if inInclude _then  fatal(2);
  fname :=   withSp(tok);
  openFile;
  inInclude := T;
@@ -1071,14 +1079,14 @@ _) _else _if input@ = '$' _then _(
  _);
  _goto 6161;
  _);
- prepErr(6);
+ fatal(6);
 _) _else (block) _( (*6244*)
   _if input@ = endl _then _(
      lineNum := lineNum+1;
      nLex := 0;
      get (input);
    _) _else _( _if skipping _then _(
-     _if input@ = chr(172B) _then  prepErr(1) _else _(
+     _if input@ = chr(172B) _then  fatal(1) _else _(
        _if input@ = qu _then _(
          get(input);
          _while (input@ # qu) & (input@ # chr(172B)) _do get(input);
@@ -1357,7 +1365,7 @@ _if input@ = dot _then _(
      closeFile;
      inInclude := F;
      _goto 6161;
-    _) _else  prepErr(0);
+    _) _else  fatal(0);
   _) _else  prev := input@;
   get(input);
   _); (* 7142 *)
@@ -1387,11 +1395,11 @@ _);
   _while ~tokInSet(a31) _do getT;
  _);
 
-(* L 3 *) _function L7314(a31:alfa):int;
+(* L 3 *) _function getConst(a31:alfa):int;
 _var v31:int; _(
- _if a31 = O _then L7314 := 0 _else _(
+ _if a31 = O _then getConst := 0 _else _(
     mapai(a31, v31);
-    L7314 := pool[v31].i;
+    getConst := pool[v31];
  _)
 _);
 (* L 3 *) _function typeCheck(t1, t2:idptr):bool;
@@ -1444,16 +1452,16 @@ _end;
 typeCheck := F
 _);
 
-(* L 3 *) _proced P7520(_var a31:idptr; _var a32:alfa;  a33:bool);
+(* L 3 *) _proced litConst(_var ret:idptr; _var off:alfa;  signed:bool);
 _label 7531, 7567, 7570, 7601, 7666;
-_var v31:idptr; v32:char; _(
-  v31 := a31;
+_var p:idptr; c:char; _(
+  p := ret;
  _case tokKind _of
 tkWord: _(
  _if tok # 'NIL' _then _goto 7666;
  7531:
- a31 := ptrType;
- a32 := g43z;
+ ret := ptrType;
+ off := g43z;
 _);
 tkIdent: _(
  _if curId = _NIL _then _goto 7666;
@@ -1461,44 +1469,44 @@ tkIdent: _(
  _if curId@.vty@.k # kSc _then _(
      _if curId@.vty = ptrType _then _goto 7531 _else _goto 7666;
  _); (* 7554 *)
-  a31 := curId@.vty;
-  a32 := curId@.off;
-  cv.i := L7314(a32);
+  ret := curId@.vty;
+  off := curId@.off;
+  cv.i := getConst(off);
 _);
 tkField: _goto 7666;
-tkStr: _( a31 := alfaType;
+tkStr: _( ret := alfaType;
   7567: cv.a := tok;
-  7570: putConst(a32, F);
+  7570: putConst(off, F);
   _);
 tkInt: _(
-  a31 := intType;
+  ret := intType;
   cv.i := ival;
   _goto 7570;
  _);
 tkReal: _(
- a31 := realType;
+ ret := realType;
  7601: cv.r := rval;
  _goto 7570;
  _);
-tkChar: _(  a31 := charType; _goto 7567 _);
+tkChar: _(  ret := charType; _goto 7567 _);
 tk0: _(
- _if ~a33 _then _goto 7666;
- _if (prev = '+') | (prev = '-') _then v32 := prev _else _goto 7666;
+ _if ~signed _then _goto 7666;
+ _if (prev = '+') | (prev = '-') _then c := prev _else _goto 7666;
  getT;
- P7520(a31, a32, F);
- _if (a31 = _NIL) _then _goto 7666;
- _if (v32 = '-') _then _(
-   _if (a31 = intType) _then _( cv.i := -ival; _goto 7570 _)
+ litConst(ret, off, F);
+ _if ret = _NIL _then _goto 7666;
+ _if c = '-' _then _(
+   _if ret = intType _then _( cv.i := -ival; _goto 7570 _)
    _else _(
-  _if (a31 = realType) _then _( rval := -rval; _goto 7601 _)
+  _if ret = realType _then _( rval := -rval; _goto 7601 _)
   _else _goto 7666;
  _)
  _);
 _)
 _end;
- _if (v31 = _NIL) | typeCheck(v31, a31)
+ _if (p = _NIL) | typeCheck(p, ret)
  _then exit;
- 7666: a31 := _NIL; (q)
+ 7666: ret := _NIL; (q)
 _);
 _proced parseType(a31:int; a32:alfa; _var a33:idptr; bckt:int);
 _label 10503, 10505, 10507, 10527, 11022, 11126;
@@ -1625,7 +1633,7 @@ exit;
  _); (* 10206 *)
  v42@.f6.id := v43;
  a41 := (a41+l4v10z);
- _if (tokKind # tkWord) | (tok # of) _then flistErr((6)); (* need "of" *)
+ _if (tokKind # tkWord) | (tok # of) _then flistErr(6); (* need "of" *)
  v41 := _NIL;
  l4v10z := a41;
  _repeat
@@ -1634,18 +1642,18 @@ exit;
   getT;
   _repeat
    v44 := v43;
-   P7520(v44, l4v11z, F);
-   _if (v44 = _NIL) _then flistErr(-1); (* bad or missing selector value *)
+   litConst(v44, l4v11z, F);
+   _if v44 = _NIL _then flistErr(-1); (* bad or missing selector value *)
    new(v45, 7);
    v45@ := [0, l4v11z, _NIL, , 6, _NIL];
-   _if (l4v6z = _NIL)
+   _if l4v6z = _NIL
    _then v45@.bas := v42
    _else v45@.bas := l4v6z;
    l4v6z := v45;
    v44 := v41;
-   (loop) _while (v44 # _NIL) _do _(
+   (loop) _while v44 # _NIL _do _(
     l4v12z := v44@.lev;
-    _if (l4v11z > l4v12z) _then _(
+    _if l4v11z > l4v12z _then _(
      v45@.vty := v44;
      _exit loop
     _) _else _(
@@ -1731,17 +1739,17 @@ _); 10503: getT; exit;
   exit;
 10527:
    baseType := _NIL;
-   P7520(baseType, v35, T);
-   _if baseType = _NIL _then typeErr(13);
+   litConst(baseType, v35, T);
+   _if baseType = _NIL _then typeErr(13);       % not a constant
    v37 := cv.i;
    getT;
-   _if prev # colon _then typeErr(14);
+   _if prev # colon _then typeErr(14);          % no : or ..
    getT;
-   P7520(baseType, v36.a, T);
-   _if baseType = _NIL _then  typeErr(15);
+   litConst(baseType, v36.a, T);
+   _if baseType = _NIL _then  typeErr(15);      % not a constant or of a wrong type
    l3v8z := cv.i;
    _if (baseType # intType) & (baseType # charType) & (baseType@.bas = _NIL)
-   | (baseType@.k # kSc) _then typeErr(16);
+   | (baseType@.k # kSc) _then typeErr(16);     % bad constant for a range type
    new(curType, 9);
    curType@ := [0, level, _NIL, baseType, cType, 1, kRng, v37, l3v8z];
    _if modeT _then  mkCheck(curType, F);
@@ -1975,7 +1983,7 @@ _);
 _);
 5: _(
 cur@ := [, 1, basReg, MUL, g41z];
- form1(17, ret);
+ form1(fIMUL, ret);
 _);
 6: cur@ := [, 1, 0, AVX, 'ЧМ1'];
 7: cur@ := [, , ret.reg, SUB, ret.off];
@@ -2028,11 +2036,7 @@ _);
 25:cur@ := [, , level, WTC, v2B];
 26:cur@ := [, , 0, 0, 0];
 27: _( cur@.op := XTS;
-
-
 putConst(cur@.a, F);
-
-
 cur@.m := basReg _);
 28: cur@:= [, , basReg, AAX, g41z]
 _end; (* 12127 *)
@@ -2153,7 +2157,7 @@ _label 12556, 12557;
 _var v31, v32:alfa;  v33:int; _(
  _if ret.ty = boolType _then _case ret.ek _of
  ekCONST: _if ret.inv = 0 _then form1(0, ret) _else form1(1, ret);
- ek1: _(  form1(3, ret); _if ret.inv # 0 _then form1(2, ret) _);
+ ek1: _(  form1(fLD, ret); _if ret.inv # 0 _then form1(2, ret) _);
  ek2:  _if ret.off # label _then _(
    TNL(v31);
    form2(fUZA-ret.inv, ret, v31);
@@ -2173,7 +2177,7 @@ _var v31, v32:alfa;  v33:int; _(
  _)
  _end _else _( (* 12624 *)
    _if ret.ek # ek3 _then _(
-    form1(3, ret);
+    form1(fLD, ret);
     ret.ek := ek3;
     exit
    _)
@@ -2198,14 +2202,14 @@ _);
 _(
   append(src.in, dst.in);
 _);
-(* L 3 *) _function F12677(a31, a32:idptr):bool;
+(* L 3 *) _function bothSet(a31, a32:idptr):bool;
  _(
- F12677 := (a31@.k = kSet) & (a32@.k = kSet);
+ bothSet := (a31@.k = kSet) & (a32@.k = kSet);
 _);
 (* L 3 *) _proced P12713(_var a31, a32: expr; a33:alfa);
 _(
   load(a31);
-  form1(19, a31);
+  form1(fPSH, a31);
   load(a32);
   form2(fVJM14, a32, a33);
   append(a31.in, a32.in);
@@ -2217,7 +2221,7 @@ _label 12747, 12752, 12775, 13013, 13045;
  _case a33.ek _of
  ekCONST, ek1: _case a34.ek _of
    ekCONST, ek1: 12747: _(
-   form1(3, a33);
+   form1(fLD, a33);
  12752:
  append(a33.in, a34.in);
  g35z := l3a5z;
@@ -2225,7 +2229,7 @@ _label 12747, 12752, 12775, 13013, 13045;
  a33 := [3, , , , a34.in, 0];
    _);
    ek2: _(
-   form1(3, a34);
+   form1(fLD, a34);
    _if a32 _then _(
   12775:
    append(a34.in, a33.in);
@@ -2233,8 +2237,8 @@ _label 12747, 12752, 12775, 13013, 13045;
  form2(fCMD, a33, a31);
  a33 := [3, , , , , 0];
  _) _else 13013: _(
-  form1(19, a34);
-  _if (a33.ek # ek3) _then  form1(3, a33);
+  form1(fPSH, a34);
+  _if (a33.ek # ek3) _then  form1(fLD, a33);
   a33.off := O;
   a33.reg := '17';
   _goto 12775;
@@ -2244,7 +2248,7 @@ _label 12747, 12752, 12775, 13013, 13045;
  _end;
  ek2: _case a34.ek _of
    ekCONST,ek1: _goto 12747;
-   ek2: 13045: _( form1(3, a34); _goto 13013 _);
+   ek2: 13045: _( form1(fLD, a34); _goto 13013 _);
    ek3: _goto 13013 _end;
  ek3: _case a34.ek _of
    ekCONST, ek1: _goto 12752;
@@ -2258,11 +2262,11 @@ _);
  _(
  _if a31.ty = intType _then _(
  _if a31.ek = ekCONST _then _(
-   rval := L7314(a31.off);
+   rval := getConst(a31.off);
    cv := ;
    putConst(a31.off, F);
  _) _else _(
-  _if a31.ek # ek3 _then form1(3, a31);
+  _if a31.ek # ek3 _then form1(fLD, a31);
   form1(18, a31);
  _)
  _)
@@ -2273,8 +2277,9 @@ _var v31, v32:idptr; _(
  v31 := a33.ty;
  v32 := a34.ty;
  _if v31 = realType _then _(
+% The roundabout if statement is needed to achieve the 100% binary matching 
  _if v32 = realType _then _goto 13155;
- _if v32 = intType _then toReal(a34 )
+ _if v32 = intType _then toReal(a34)
  _else 13153: _( F13134 := T;  exit _);
  13155:
  _)_else _if v31 # intType _then _goto 13153
@@ -2300,11 +2305,11 @@ _var v31:alfa; v32:int; v33:expr; _(
  _end;
  ek1: (* 13245 *) _case a33.ek _of
    ekCONST: 13246: _if a33.inv = 0 _then a32 := [0, , , , _NIL, 0];
-   ek1, ek2: _( form1(3, a32);
+   ek1, ek2: _( form1(fLD, a32);
      13261: _if a32.inv = 0 _then v32 := 3 _else v32 := 2;
      TNL(v31);
      form2(v32, a32, v31);
-     _if a33.ek = ek1 _then form1(3, a33);
+     _if a33.ek = ek1 _then form1(fLD, a33);
      _if a33.inv = 0 _then v32 := 3 _else v32 := 2;
      form2(v32, a33, v31);
      appInst(a32, a33);
@@ -2314,14 +2319,14 @@ _var v31:alfa; v32:int; v33:expr; _(
    ek3: 13323: _(
    _if a32.inv = 0 _then v32 := 3 _else v32 := 2;
    _if a33.inv = 0 _then _(
-    _if a32.ek = ek1 _then form1(3, a32);
+    _if a32.ek = ek1 _then form1(fLD, a32);
     form2(v32, a32, a33.off);
     a32.off := a33.off;
    _) _else _(
     TNL(v31);
     form2(fGOTO, a33, v31);
     form2(fLAB, a33, a33.off);
-    _if a32.ek = ek1 _then form1(3, a32);
+    _if a32.ek = ek1 _then form1(fLD, a32);
     form2(v32, a32, v31);
     a32.off := v31;
    _);
@@ -2594,12 +2599,12 @@ _( (* actPar *)
     _if ~noParam _then _(
       _if ~(l3v19z = 3) _then  v3D := l3v19z;
       cv.i := v3D;
-      form1(27, v31);
+      form1(fXTS, v31);
     _) _else  l3v16z := l3v16z@.bas;
     _if l3v8z & (v3E # 1) _then _(
       l3v18z := v31.in;
       v31.in := a32;
-      form1(19, v31);
+      form1(fPSH, v31);
       a32 := v31.in;
       v31.in := l3v18z;
     _);
@@ -2613,13 +2618,13 @@ _( (* actPar *)
   _); (* 14553 *)
   v31.in := a32;
   MAPЯГА(a31@.nm, v37);
-  _if a31@.orignm = v37 _then form1(19, v31);
+  _if a31@.orignm = v37 _then form1(fPSH, v31);
   _if noParam _then _(
     form2(5, v31, a31@.orignm);
     v31.in@.au := auSETINT;
     v37 := a31@.lev;
     _if a31@.lbl = extern _then _(
-      form1(26, v31);
+      form1(fEMPTY, v31);
       v31.in@.m := label;
     _)
   _) _else _( (* 14607 *)
@@ -2629,7 +2634,7 @@ _( (* actPar *)
       mapia(v3D, v37);
       form2(fPUSH, v31, v37);
     _) _else _(
-      form1(26, v31);
+      form1(fEMPTY, v31);
       v31.in@.op := XTS;
       form2(fPUSH, v31, '1');
       v3D := -(2*v3E+l3v11z); (* ineff *)
@@ -2658,9 +2663,9 @@ _);
  lookup := 2;
  getT;
  L14707 := T;
- _if ~((tokKind # tkIdent) | (curId = _NIL))
- & (~((curId@.cl # cConst) | (curId@.bas = _NIL)) | (curId@.cl = cVar))
- | (tokKind = tkField) _then LValue(ret )
+ _if (tokKind = tkIdent) & (curId # _NIL)
+ & (((curId@.cl = cConst) & (curId@.bas # _NIL)) | (curId@.cl = cVar))
+ | (tokKind = tkField) _then LValue(ret)
  _else L14707 := F;
  _);
 
@@ -2684,11 +2689,11 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
  chkComma;
  doExpr(v37);
  l3v19z := v37.ek = ekCONST;
- _if l3v19z _then  l3v20z := L7314(v37.off);
+ _if l3v19z _then  l3v20z := getConst(v37.off);
  _if a31 # 2 _then _(
    doExpr(v3D);
    _if v3D.ek # ekCONST _then  oshibka(2);
-   l3v22z := L7314(v3D.off);
+   l3v22z := getConst(v3D.off);
    _if (l3v22z < 1) | (l3v22z > 47) _then oshibka(7);
    l3v24z := [48-l3v22z..47];
  _); (* 15020 *)
@@ -2716,7 +2721,7 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
      l3v21z := -l3v20z;
      _if v31.ek = ekCONST _then_(
        l3v26z := T;
-       l3v30z := L7314(v31.off);
+       l3v30z := getConst(v31.off);
        l3v30z := shift(l3v30z, l3v21z);
        cv := ;
        putConst(l3v28z, F);
@@ -2738,7 +2743,7 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
      l3v31z := a32;
      load(v31);
      P12422(O, ASN, 100B-l3v20z, v31);
-     form1(19, v31);
+     form1(fPSH, v31);
      P12741(AEX, T, v31, a32, 0);
      dump(a32.in);
      ГГ('10ЛУ', l3v27z); putSep;
@@ -2750,10 +2755,10 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
        load(v31);
        P12422(O, ASN, 100B-l3v20z, v31);
      _);
-     form1(19, v31);
+     form1(fPSH, v31);
      dump(v31.in);
      l3v29z := a32.ek;
-     form1(12, a32);
+     form1(fUVTM15, a32);
      dump(a32.in);
      _if l3v29z = ek2 _then _(
        putInsn('15СЧ'); putInsn('17СР-1')
@@ -2764,12 +2769,12 @@ l3v29z:ekind; l3v30z:int; l3v31z:expr; _(
    _) _else (sel) _(
      load(v31);
      cv.b := l3v24z;
-     form1(27, v31);
-     form1(19, v31);
+     form1(fXTS, v31);
+     form1(fPSH, v31);
      load(v37);
-     form1(19, v37);
+     form1(fPSH, v37);
      appInst(v31, v37);
-     form1(12, a32);
+     form1(fUVTM15, a32);
      appInst(v37, a32);
      extras[17] := UTC;
      dump(a32.in);
@@ -2844,10 +2849,10 @@ _( (* stdCall *)
     form2(fMATH, ret, chr(stProc));
   _);
   7: (*15577*) _(                             % ABS
-    form1(26, ret);
+    form1(fEMPTY, ret);
     ret.in@ := [, 3-2*checkMode, , 'МВ'];
   _);
-  8: (*15611*) form1(4, ret);                % TRUNC
+  8: (*15611*) form1(fTRUNC, ret);                % TRUNC
   9: (*15615*) _(                             % ODD
     form1(20, ret);
     ret.ek := ek2; ret.off := label
@@ -2880,11 +2885,11 @@ _( (* stdCall *)
     _);
   15: _( L12445(ret); ret.ek := ek3 _);       % REF
   17: _(                                      % SQR
-    form1(19, ret);
-    _if  checkMode = 1 _then  form1(16, ret);
+    form1(fPSH, ret);
+    _if  checkMode = 1 _then  form1(fORZ64, ret);
     form2(fSTKOP, ret, MUL);
     ret.in@.au := auFL-2*checkMode;
-    _if checkMode = 1 _then  form1(17, ret);
+    _if checkMode = 1 _then  form1(fIMUL, ret);
   _);
   18: _(                                      % ROUND
     form2(fCALL, ret, ADD);
@@ -2892,11 +2897,11 @@ _( (* stdCall *)
     extras[12] := ;
   _);
   20: _(                                      % CARD
-    form1(26, ret);
+    form1(fEMPTY, ret);
     ret.in@.op := 'ВЧ'
   _);
   21: _(                                      % MINEL
-    form1(26, ret); ret.in@.op := 'ВН';
+    form1(fEMPTY, ret); ret.in@.op := 'ВН';
     form1(1, ret); ret.in@.op := SUB;
   _);
   22: _(                                      % EOLN
@@ -2916,7 +2921,7 @@ _( (* stdCall *)
       _) _else _(
         _if ret.ty@.pck = 0 _then alfAdd(ret.off, 1);
         form2(fCMD, ret, WTC);
-        form1(8, ret);
+        form1(fZERO, ret);
       _);
     _); (* 16064 *)
     form1(2, ret);
@@ -2960,9 +2965,9 @@ _);
 (* L 5 *) _proced L16214;
  _(
  _if v33 _then _(
-   form1(8, ret);
+   form1(fZERO, ret);
    l4v13z := ret.in;
-   form1(19, ret);
+   form1(fPSH, ret);
    v33 := F;
  _);
  load(v41);
@@ -2983,8 +2988,8 @@ _( (* P16240 *)
        L16170(l4v7z);
 
        _if (v41.ek = ekCONST) & (l4v7z.ek = ekCONST) _then  _(
-         l4v15z := L7314(v41.off);
-         l4v16z := L7314(l4v7z.off);
+         l4v15z := getConst(v41.off);
+         l4v16z := getConst(l4v7z.off);
          _if (l4v15z < 0)
          | (l4v15z > 47)
          | (l4v16z < 0)
@@ -2993,7 +2998,7 @@ _( (* P16240 *)
          _else mkRng(l4v15z, l4v16z);
        _) _else _(
          L16214;
-         form1(19, v41);
+         form1(fPSH, v41);
          load(l4v7z);
          appInst(v41, l4v7z);
          form2(fCALL, l4v7z, ATX);
@@ -3001,7 +3006,7 @@ _( (* P16240 *)
        _); (* 16343 *)
      _) _else _( (* 16344 *)
        _if v41.ek = ekCONST _then _(
-         l4v15z := L7314(v41.off);
+         l4v15z := getConst(v41.off);
          _if (l4v15z < 0) | (l4v15z > 47) _then prErr(mnojit, 0) (* bad set element *)
           _else mkElem(l4v15z);
        _) _else _(
@@ -3035,8 +3040,8 @@ _( (* factor *)
     _) _else _(
 16441:
       v31 := _NIL;
-      P7520(v31, v34, F);
-      _if (v31 = _NIL) _then  factErr(2); (* not a constant *)
+      litConst(v31, v34, F);
+      _if v31 = _NIL _then  factErr(2); (* not a constant *)
       ret := [0, v34, 0, v31, _NIL, 0];
       _if modeX _then  ret.reg := BP;
       _if (v31 = boolType) & (v34 # '12') _then  ret.inv := 1;
@@ -3058,8 +3063,7 @@ _( (* factor *)
   _);
   tkInt, tkStr, tkReal, tkChar: _goto 16441;
   tkField: _goto 16534;
-  tkIdent: _(
-    _if curId = _NIL _then factErr(6) (* ident not defined *)
+  tkIdent: _if curId = _NIL _then factErr(6) (* ident not defined *)
     _else _(
     _if curId@.cl = cVar _then _(
 16534:
@@ -3091,7 +3095,7 @@ _( (* factor *)
       ret.ty := v31@.vty;
       exit;
     _);
-  _)_)
+  _)
   _end;
   getT;
 16625:
@@ -3231,7 +3235,7 @@ l3v25z := T;
    alfAdd(l3v10z, l3v22z);
    l3v23z := v32@.sz;
    _if v34.ek = ekCONST _then _(
-     l3v22z :=   L7314(v34.off);
+     l3v22z :=   getConst(v34.off);
      _if (l3v22z < v33@.lo) | (l3v22z > v33@.hi) _then prErr(perem, 3); (* const index out of range *)
      _if l3v23z # 1 _then  l3v22z := l3v22z*l3v23z;
      alfAdd(l3v10z, l3v22z);
@@ -3328,19 +3332,19 @@ _);
 (* L 3 *) _proced term(_var ret:expr);
 _label 17511, 17636, 17676;
 _const imod = 'MOD'; term = (*=a1*)'TERM'(*=a0*);
-_var v31, v32:int;
+_var op:(oMUL, oDIVR, oAND, oDIVI, oMOD); v32:int;
 v33, v34:idptr;
 v35:expr; l3v11z:int;
 l3v12z:bitset;
 (* L 4 *) _proced termErr;
 _(
-  prErr(term, v31);
+  prErr(term, ord(op));
 _);
 
 (* L 4 *) _proced L17467;
 (* L 5 *) _proced L17454(_var a51:expr);
 _(
- _if a51.ek # ek3 _then  form1(3, a51);
+ _if a51.ek # ek3 _then  form1(fLD, a51);
  form1(18, a51);
 _);
 
@@ -3356,15 +3360,15 @@ _( (* term *)
   _if prev = semi _then exit;
 
   _if tokKind = tk0 _then _(
-    _if prev = star _then v31 := 0
-    _else _if prev = slash _then v31 := 1
-    _else _if prev = chr(81) _then  v31 := 2
+    _if prev = star _then op := oMUL
+    _else _if prev = slash _then op := oDIVR
+    _else _if prev = chr(81) _then  op := oAND
     _else exit;
   _) _else _( (* 17530 *)
     _if tokKind = tkWord _then _(
-      _if tok = kdiv _then v31 := 3
-      _else _if tok = mod _then v31 := 4
-      _else _if tok = and _then v31 := 2
+      _if tok = kdiv _then op := oDIVI
+      _else _if tok = mod _then op := oMOD
+      _else _if tok = and _then op := oAND
       _else exit
     _) _else exit
   _); (* 17546 *)
@@ -3375,13 +3379,13 @@ _( (* term *)
   v33 := ret.ty;
   _if v35.ty@.k = kRng _then  v35.ty := v35.ty@.bas;
   v34 := v35.ty;
-  (case) _case v31 _of
-  0: _(
+  (case) _case op _of
+  oMUL: _(
     _if v33@.k # kSet _then _(
     _if ~((v33 # v34) | (v33 # intType)) _then _(
       load(ret);
       _if ~(modeM  | (v35.reg # O) | (v35.in # _NIL)) _then _(
-        v32 :=   L7314(v35.off);
+        v32 :=   getConst(v35.off);
         l3v12z := ;
         _if (v32 > 0) & (card(l3v12z) = 1) _then_(
           v32 := minel(l3v12z)+17;
@@ -3390,25 +3394,25 @@ _( (* term *)
           _goto 17636;
         _)
       _);
-      form1(16, ret);
+      form1(fORZ64, ret);
       P12741(MUL, T, ret, v35, 1);
-      form1(17, ret);
+      form1(fIMUL, ret);
 17636:
       ret.ty := intType;
       _) _else _if F13134(MUL, T, ret, v35) _then  termErr;
     _) _else _goto 17676
   _);
-  1: _if (v33 = v34) & (v33 = intType) _then _(
+  oDIVR: _if (v33 = v34) & (v33 = intType) _then _(
        L17467;
        ret.ty := realType;
      _) _else _if F13134(DIV, F, ret, v35) _then  termErr;
-  2:  _if (v33 = v34) & (v33 = boolType) _then  P13176(F, ret, v35 )
-      _else 17676:  _if modeC & ~F12677(v33, v34) _then termErr
+  oAND:  _if (v33 = v34) & (v33 = boolType) _then  P13176(F, ret, v35 )
+      _else 17676:  _if modeC & ~bothSet(v33, v34) _then termErr
       _else P12741(AAX, T, ret, v35, 0);
-  3: _if (v33 # v34) | (v33 # intType) _then termErr
+  oDIVI: _if (v33 # v34) | (v33 # intType) _then termErr
      _else _(
        _if ~(modeM | (v35.reg # O) | (v35.in # _NIL)) _then _(
-         v32 :=   L7314(v35.off);
+         v32 :=   getConst(v35.off);
          l3v12z := ;
          _if  v32 > 1 _then _(
            _if card(l3v12z) = 1 _then _(
@@ -3425,12 +3429,12 @@ _( (* term *)
          _)
        _);
        L17467;
-       form1(4, ret);
+       form1(fTRUNC, ret);
      _);
-  4: _if (v33 = v34) _then _(
-       _if (v33 = intType) _then _(
+  oMOD: _if v33 = v34 _then _(
+       _if v33 = intType _then _(
          _if ~modeM & (v35.reg = O) & (v35.in = _NIL) _then _(
-           v32 :=   L7314(v35.off);
+           v32 :=   getConst(v35.off);
            l3v12z := ;
            _if (v32 > 1) &  (card(l3v12z) = 1) _then _(
              v32 := 47-minel(l3v12z);
@@ -3441,7 +3445,7 @@ _( (* term *)
              cv := ;
              putConst(g41z, F);
              load(ret);
-             form1((28), ret);
+             form1(28, ret);
              _exit case;
          _)_);
          P12713(ret, v35, imod);
@@ -3457,7 +3461,7 @@ _const c80=80;
 _var v31:bool;
 v32:alfa;
 v33:idptr;
-v34:int; v35:expr;
+op:(oADD, oSUB, oOR); v35:expr;
 (* L 4 *) _proced sexpErr(a41:int);
  _(
    prErr((*=a1*) 'SЕХРR' (*=a0*), a41);
@@ -3475,19 +3479,19 @@ _( (* sexpr *)
  term(ret);
  _if v31 _then _(
    _if (ret.ty # realType) & ~typeCheck(ret.ty, intType) _then  sexpErr(0);
-   _if ret.ek # ek3 _then  form1(3, ret);
-   form1(6, ret);
+   _if ret.ek # ek3 _then  form1(fLD, ret);
+   form1(fNEG, ret);
    _if ret.ty = realType _then  ret.in@.au := auFL;
  _);
 20131: _if tokKind = tk0 _then _(
    _if prev = semi _then exit
-   _else _if prev = plus _then v34 := 0
-   _else _if prev = minus _then v34 := 1
-   _else _if prev = chr(80) _then v34 := 2
+   _else _if prev = plus _then op := oADD
+   _else _if prev = minus _then op := oSUB
+   _else _if prev = chr(80) _then op := oOR
    _else exit
  _) _else _( (* 20150 *)
    _if tokKind # tkWord _then exit
-   _else _if tok = or _then v34 := 2
+   _else _if tok = or _then op := oOR
    _else exit
  _);
  lookup := 2;
@@ -3497,8 +3501,8 @@ _( (* sexpr *)
  _if v33@.k = kRng _then _( v33 := v33@.bas; ret.ty :=; _);
  v22 := v35.ty;
  _if v22@.k = kRng _then  v22 := v22@.bas;
- _case v34 _of
- 0: _(
+ _case op _of
+ oADD: _(
    v32 := ADD;
    v31 := T;
    _if v33@.k = kSet _then _goto 20266;
@@ -3506,14 +3510,14 @@ _( (* sexpr *)
    _if (v33 = v22) & (v33 = intType) _then P12741(v32, v31, ret, v35, 1 )
    _else _if F13134(v32, v31, ret, v35) _then  sexpErr(1);
  _);
- 1:
+ oSUB:
  _if v33@.k # kSet _then _( v32 := SUB; v31 := F; _goto 20206 _)
- _else _if F12677(v33, v22) _then _(
+ _else _if bothSet(v33, v22) _then _(
    load(v35); form2(fEQ, v35, UTC); P12741(AAX, T, ret, v35, 0);
  _) _else  sexpErr(2);
- 2: _if (v33 = v22) & (v33 = boolType) _then  P13176(T, ret, v35 )
+ oOR: _if (v33 = v22) & (v33 = boolType) _then  P13176(T, ret, v35 )
  _else  20266:
- _if F12677(v33, v22) _then  P12741(AOX, T, ret, v35, 0 )
+ _if bothSet(v33, v22) _then  P12741(AOX, T, ret, v35, 0 )
  _else sexpErr(3)
  _end;
  _goto 20131;
@@ -3577,9 +3581,9 @@ _(
   _case op _of
   0, 1: _(
    load(l3v9z);
-   form1(19, l3v9z);
+   form1(fPSH, l3v9z);
    load(ret);
-   form1(19, ret);
+   form1(fPSH, ret);
    ret.in@.op := AEX;
    appInst(l3v9z, ret);
    ret := [2, , , , , op];
@@ -3624,7 +3628,7 @@ _(
    _);
  6:  20651: _(
    load(ret);
-   form1(19, ret);
+   form1(fPSH, ret);
    load(l3v9z);
    appInst(ret, l3v9z);
    ret.in := l3v9z.in;
@@ -3880,7 +3884,7 @@ _( (* standProc *)
         _while (prev = comma) & (t1 # _NIL) _do _(
           t2 := _NIL;
           getT;
-          P7520(t2, v42, T);
+          litConst(t2, v42, T);
           _if t2 = _NIL _then _(  v37 := 19; _GOTO 23711_);
           getT;
           _while (t1 # _NIL) & (t1@.cl # c5) _do t1 := t1@.vty;
@@ -3915,13 +3919,13 @@ _( (* standProc *)
    _if prev # comma _then  L21070(13);
    P21311(e2, t2);
    _if flag _then _(
-     form1(12, e1);
+     form1(fUVTM15, e1);
      form2(fCALL, e1, v42);
      e1.ek := ek3;
      g101z := T;
      P13734(e2, e1);
    _) _else _(
-     form1(12, e1);
+     form1(fUVTM15, e1);
      load(e2);
      appInst(e1, e2);
      form2(fCALL, e2, v42);
@@ -4159,7 +4163,7 @@ _(
  ekCONST:  _if a41.inv = 0 _then  P4357(1, a42);
  ek2: _goto 22750;
  ek1: _(
-   form1(3, a41);
+   form1(fLD, a41);
 22750:
    dump(a41.in);
    P4357(3-a41.inv, a42);
@@ -4181,14 +4185,14 @@ _var v41, v42, v43, v44, v45:@item;
  l4v6z:bool; l4v7z:int; _(
  l4v7z := lineNum;
  doExpr(e1);
- _if (e1.ty@.k > kRng) | (e1.ty = realType) _then prErr(case, 0);
+ _if (e1.ty@.k > kRng) | (e1.ty = realType) _then prErr(case, 0); % bad case expr type
  L3712;
  TNL(v31);
  P4357(1, v31);
  TNL(v35);
  v41 := _NIL;
  setup(v43);
- _if tok # of _then _(  v37 := (6); _GOTO 23711 _);
+ _if tok # of _then _(  v37 := 6; _GOTO 23711 _);
   t2 := _NIL;
   getT;
   _repeat _if (prev # semi) & (tokKind # tkWord) _then _(
@@ -4197,12 +4201,12 @@ _var v41, v42, v43, v44, v45:@item;
     _repeat
     curAU := 1;
     t1 := _NIL;
-    P7520(t1, v32, T);
+    litConst(t1, v32, T);
     _if t1 # _NIL _then _(
       _if t2 = _NIL _then t2 := t1
-      _else _if t1 # t2 _then  prErr(case, 1);
+      _else _if t1 # t2 _then  prErr(case, 1);          % case constants of different types
       new(v42, 4);
-      v42@.off := L7314(v32);
+      v42@.off := getConst(v32);
       v37 := v42@.off;
       v42@.f2 := v33;
       v42@.f3 := v32;
@@ -4562,7 +4566,7 @@ _( (* doStmt *)
           e1 := [1, v2B, level, , _NIL];
           store(e1);
           e1 := [, 0, 0, , _NIL];
-          form1(25, e1);
+          form1(fWTC, e1);
           l2v15z := succ(l2v15z);
           mapia(l2v15z, v2B);
         _); (* 24505 *)
@@ -4695,7 +4699,7 @@ _( (* doStmt *)
    load(e2);
  _) _else _if (e1.ty@.k = kRng) & (e1.ty@.bas = e2.ty) _then _(
    _if e2.ek = ekCONST _then _(
-     v37 := L7314(e2.off);
+     v37 := getConst(e2.off);
      _if (v37 < e1.ty@.lo) | (v37 > e1.ty@.hi)
      _then prErr('ГР ДИА', 0 );
    _) _else _if modeT _then _(
@@ -4755,7 +4759,7 @@ _var ef:@extFile; v42:int; (*=c+*) _(
  getT;
 _);
 
-(*=c- L 4 *) _proced dumpConst(_var an, ak:word);(*=c+*)
+(*=c- L 4 *) _proced dumpConst(_var an, ak:int);(*=c+*)
 _( code(4СЧ3=УИ5,6ПА46=ПБfirst,loop:);
  put(output);
  code(first:14ПАcheck=ПБstart,zero:14ПВdigit=,check:У0zero=,nezero:);
@@ -4777,7 +4781,7 @@ _( (* header *)
   _if ~modeC _then _(
    v2D := 0;
    _while v2D <= 47 _do _(
-     pool[9+1+v2D].i := v2D;
+     pool[9+1+v2D] := v2D;
      v2D := v2D+1;
    _);
    poolIdx := 9+v2D;
@@ -4803,7 +4807,7 @@ _( (* header *)
   _if modeX _then
   write('DS=СН(3),Z1Z,Z2,Z3,Z4,Z5,Z6,Z7,ПА,ВИ,FРF,FGF,FRWF,FRF,FWS,FWС,FWА,FWВ,FWI,FWR,FWL,АС,ПБ,NА,ВА,ЕА,FА,ВD,Z8,ВП,ВП6,ВП7,ПВ,ОRF,');
   write('Н;КД,К;');
-  P26222(v33, prog);
+  programme(v33, prog);
   P3330;
   _if g107z | g109z _then
   write('К;ЩРWR:ИАZРR0=ЗЧ,ВИ16=ВМ7,17ЗЧ=7ПА-17,ZРR1:ИАZРR0=СЧ,СД75=ИАZРR0,ЗЧ=СЧ13,17ЗЧ=МР,16ПВОWI=,7КЦZРR1=17СЧ,УИ7=17СЧ,УИ16=16ПБ,ZРR0:ЗЧ=ЗЧ,ZРR2:ЗЧ=ЗЧ42,');
@@ -4983,7 +4987,7 @@ _);
    v2D := v2D+1;
  _);
  _);
-_( (* P26222 *)
+_( (* programme *)
  _if tok = sp _then _(  init; header; exit _);
  v2B := l2a1z;
  l2v19z := modeC;
@@ -5036,7 +5040,7 @@ _( (* P26222 *)
      getT;
      _if prev = eq _then getT _else prErr(block, 3);
      v21 := _NIL;
-     P7520(v21, v22@.off, T);
+     litConst(v21, v22@.off, T);
      _if v21 = _NIL _then prErr(block, 4) _else _( v22@.vty := v21; getT _);
      l2v29z := 0;
      _select
@@ -5050,10 +5054,10 @@ _( (* P26222 *)
        new(l2v24z, 8);
        l2v24z@ := [0, level, idTable[g25z], _NIL, 1, intType];
        v21 := _NIL;
-       P7520(v21, l2v24z@.off, F);
+       litConst(v21, l2v24z@.off, F);
        _if v21 = _NIL _then prErr(block, 6)
        _else _if (v21 = v22@.vty) & (v21 = intType) _then _(
-         l2v30z := L7314(v22@.off);
+         l2v30z := getConst(v22@.off);
          _case l2v29z _of
          0: _goto 26505;
          1: cv.i := cv.i+l2v30z;
@@ -5278,7 +5282,7 @@ _( (* P26222 *)
      l2v5z := l2v21z;
      isFunc := T;
 27404:
-     P26222(l2v7z, v21);
+     programme(l2v7z, v21);
      mapai(l2v7z, v2D);
      mapia(v2D-2, l2v7z);
      P4511(7, v21@.lbl, l2v7z);
@@ -5374,8 +5378,8 @@ _(
   new(dummyId, 8);
   dummyId@.f7.i := 0;
   writeln(' ПАСКАЛЬ-АВТОКОД 9.(17.05.88)');
-  P26222(tok, curId);
-  _if errSeen _then 27721: prepErr(5);
+  programme(tok, curId);
+  _if errSeen _then 27721: fatal(5);
   _if modeeL _then_( tok := 'ЛЕНТЯЙ'; code(=ЗЧ75777,); g91z := time; code(ЗЧ75775=,) _);
   (*=a0*)write('Н;66005,Е;!≡1400000000');
   mapia(poolIdx+1, tok);code(ПБZ0=);
