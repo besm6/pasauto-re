@@ -1,11 +1,14 @@
 # Decompiling the Pascal-Autocode compiler (the first Pascal compiler for the BESM-6).
 
-The work on the compiler started on February of 1975, and a beta version released in early 1976.
-The persented version, with major number 9, is dated May 17, 1988. There is a newer minor fix, dated December 9, 1988 (the differences are trivial).
+The work on the compiler started in February of 1975, and a beta version released in early 1976.
+The presented version, with major number 9, is dated May 17, 1988. There is a newer minor fix, dated December 9, 1988 (the differences are trivial).
 
 The BESM-6 Pascal system operated in an interactive environment, allowing to compile and execute a Pascal program with a single CLI command.
 
-The compiler is called as an overlay by the helper program and compiles to an "autocode" language which used Cyrillic mnemonics for opcodes and used neither spaces nor newlines as separators. There assembler is then called, which produces an executable binary in memory. The helper program either jumps to it (by default), or saves it to a file, if requested.
+The compiler is called as an overlay by the helper program and compiles to an "autocode" language which used Cyrillic mnemonics for opcodes and used neither spaces nor newlines as separators. The lack of newlines allowed to form the assembly code in the standard output file without a single call to `writeln`, causing the runtime system to buffer everything on a magnetic drum.
+
+The assembler is then called, to which the contents of the drum are given as input. It produces an executable binary in memory. The helper program either jumps to it (by default), or saves it to a file, if requested.
+
 There was no need for a (static) linker: the runtime library was loaded into a predefined location, and the compiler spewed a list of equivalences which had to be in sync with the library. There was a mechanism to declare external subroutines and to dynamically load overlays containing those subroutines. 
 
 The overall format of the autocode instruction is {optional octal index}{two-letter opcode}{optional octal or mnemonic offset}{separator}, where {separator} is a comma to separate instruction words, or an equal sign to separate the two instructions in a word.
