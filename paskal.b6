@@ -1,0 +1,911 @@
+шифр 419999 зс5^
+ацпу 128^
+лен 43(2222-зп)^
+еев1а3
+*name mars
+*call yeslis
+*bemsh
+ввд$$$
+* специально затираем прежнее содержимое зоны 430000
+a start 1
+ utc
+ fin
+квч$$$
+trn$$$
+наз   000001
+зонгп 430000 1
+кнц$$$
+*bemsh
+*     результат совпадает с содержимым зоны 1050 диска 2148
+ВВД$$$
+* вывод текста
+        macro
+&l      msg     &txt
+&l      мода    BASE
+        уиа     tx&sndx.(М15)
+        пб      x&sndx
+tx&sndx текст   п&txt
+        конд    m40b'172'
+x&sndx  пв      write(М16)
+        mend
+* opt проверяет командную строку: даются адрес перехода по концу параметров
+* и опционально ожидаемый тип параметра
+        macro
+&l      opt     &err,&typ
+&l      мода    BASE
+        пв      getopt(М16)
+        сч      (М2)
+        по      &err
+        aif    (&typ eq '').ex
+        сч      cmdtyp
+        нтж     &typ
+.ex     mend
+* декодирование типов параметров
+        macro
+        case    &a,&b,&c,&d
+        сч      cmdtyp
+        нтж     &a(1)
+        по      &a(2)
+        aif     (&b eq '').ex
+        case    &b,&c,&d
+.ex     mend
+* таблица операций
+        macro
+&lab    tabl    &a,&b,&c,&d,&e,&f,&g,&h,&i,&j,&k,&l,&m,&n
+&lab    текст   п'&a(1)'
+        конд    а(&a(n'&a))
+        aif     (&b eq '').ex
+        tabl    &b,&c,&d,&e,&f,&g,&h,&i,&j,&k,&l,&m,&n
+.ex     mend
+* базированный ПВ
+        macro
+&l      call    &a
+&l      мода    BASE
+        пв      &a
+        mend
+* базированный УИА
+        macro
+&l      lea     &a
+&l      мода    BASE
+        уиа     &a
+        mend
+* установка расположения файла
+        macro
+&l      setloc  &a
+&l      lea     &a.(М4)
+        пб      setloc
+        mend
+* формирование ИС из pg и nuz [в лист в dest], обмен nzon
+        macro
+&l      ioex    &pg,&nuz,&nzon,&dest
+&l      ноп
+        aif     (&nzon eq '').a
+        уиа     1-&nzon.(М1)
+        ago     .b
+.a      по      zero
+        нтж     vseed
+        уи      М1
+        слиа    2(М1)
+.b      сч      &pg
+        зп      e70wrd
+        aif     (&dest eq '').c
+        сч      &dest
+        сда     64-30
+        или     e70wrd
+        зп      e70wrd
+.c      сч      &nuz
+        сда     64
+        или     e70wrd
+        call    rwzons(М14)
+        mend
+* запись &a в переменные в списке &b
+        macro
+&l      set     &a,&b
+&l      сч      &a
+        зп      &b(1)
+        aif     (n'&b eq 1).x
+        зп      &b(2)
+        aif     (n'&b eq 2).x
+        зп      &b(3)
+.x      mend
+ПАСКАЛ  СТАРТ   '1'
+BASE    equ     ПАСКАЛ-1
+        употр   BASE(М6)
+        пам     1
+        конд    в'30001262'
+        конд    п'ПАСКАЛ'
+ent4    уиа     '66000'(M6)     сюда пульт входит сам
+        пб      begin           если ПАСКАЛ уже в 33 листе
+ent5    уиа     '66000'(M6)     сюда возвращаемся после
+        пб      return          запуска автокод-транслятора
+goto    пам     1               адрес возврата
+START   уиа     0(M6)
+        уиа     '35072'(М3)     ЫЫЫ
+        уиа     '76001'(М1)
+        уиа     (М2)
+BBEPX   мода    '1777'
+        сч      (М2)
+        мода    '67777'
+        Э75     (М2)
+        слиа    -1(М2)
+        мода    (M6)
+        цикл    BBEPX(М1)
+        уиа     '66000'(M6)
+        пб      begin
+begin   call    setup(М15)
+        lea     badprm(М12)
+        пв      parse(М11)
+        set     0,(reset,exfcnt)
+        call    radsys(М4)
+        мод     argv
+        сч      3
+        уи      М2
+        сч      0
+        зп      countr
+        слиа    -1(М2)
+        call    getopt(М16)
+        пб      begin1
+cmdtyp  пам     1
+CMD     пам     1
+Ttext   конд    п'5'
+Tchar   конд    п'4'
+B3      конд    п'3'
+Toctal  конд    п'2'
+countr  конд    п'7'
+getopt  слиа    1(М2)
+        сч      (М2)
+        сда     64-3
+        счмр    
+        зп      cmdtyp
+        сч      countr
+        слц     E1
+        зп      countr
+        мод     (М2)
+        сч      
+        зп      CMD
+        сч      cmdtyp
+        нтж     Ttext
+        пе      nottxt
+        сч      CMD
+        зп      curcmd
+nottxt  пб      (М16)
+begin1  lea     этовсе(М5)
+        lea     tpname(М4)
+        call    nxtop3(М3)
+        case    (Tchar,semicl)
+следущ  set     E1,(tpflag,taflag,exeflg)
+        opt     этовсе
+        case    (Tchar,symbol)
+        уиа     1(М1)   после адреса паскаль-программы нет ограничителя
+        пб      err
+semicl  сч      CMD
+        нтж     semi
+        по      следущ     точка с запятой игнорируется
+symbol  сч      CMD
+        нтж     dot
+        пе      нетчк
+        lea     err3(М5)
+        lea     stdin(М4)
+        call    nxtopt(М3)
+        opt     этовсе
+        case    (Tchar,нетчк)
+err2    уиа     2(М1)   после адреса INPUT д. б. ничего или / или -
+        пб      err
+********************
+слеш    уиа     -14(М4)
+        lea     этовсе(М5)
+iofile  call    nxtopt(М3)
+        слиа    -3(М4)
+        сч      exfcnt
+        слц     E1
+        зп      exfcnt
+        пб      iofile
+нетчк   сч      CMD
+        нтж     slash
+        по      слеш
+        сч      CMD
+        нтж     minus
+        пе      err2
+        пб      nxtop2
+unused  lea     ident(М15)
+        пб      exit
+exit    пв      write(М16)
+        Э70     saveme
+exit1   сч      
+        мода    '56001'
+        зп      
+        пб      pult
+nxtop2  opt     этовсе
+        case    (Ttext,decode)
+        сч      CMD
+        нтж     slash
+        по      слеш
+        уиа     4(М1)   нет <Имя дополнения>, ни /, ни -
+        пб      err
+err3    уиа     3(М1)   нет адреса для INPUT
+        пб      err
+err6    уиа     6(М1)   нет целого параметра
+        пб      err
+err7    уиа     7(М1)   нет адреса файла
+        пб      err
+decode  lea     TABLE(М1)
+decod1  сч      (М1)
+        по      nope
+        нтж     CMD
+        по      found
+        слиа    2(М1)
+        пб      decod1
+found   мод     1(М1)
+        пб      (M6)    
+nope    уиа     5(М1)   неправильное имя дополнения
+        пб      err
+badprm  msg     'НЕПРАВИЛЬНЫЙ СПИСОК ПАРАМЕТРОВ'
+        сч      
+        мода    '56001'
+        зп      
+        пб      pult
+TABLE   tabl    ТЕЛЕ,НЕТ,НОВ,ТП,TA,ВЫП,HТП,HTA,HВЫП,ЗОНГП,АДСИС
+        tabl    КОМП,ОUТРUТ,MABT23,ПЕЧ,ЗОНПЕЧ,ПП,ППН,ПА,НП
+        tabl    ЗОНРУК,(РУКОВО,РУКОВ),РУКОВ,ЗОНБИЛ,СБОЙ,ЛИСТ
+        конд    в'0'
+ЛИСТ    уиа     page(М1)
+        пб      getval
+ПП      сч      E2E1
+НП      зп      '76013' режим печати пульта
+        пб      nxtop2
+ППН     сч      E1
+        пб      НП
+ПА      сч      E2
+        пб      НП
+ПЕЧ     уиа     prntfl(М1)
+        пб      getval
+ТЕЛЕ    уиа     telefl(М1)
+getval  сли     М1(М6)
+        opt     err6
+        case    (Toctal,getoct)
+        уиа     (М1)    должен быть целый параметр
+        пб      err
+********************        
+getoct  сч      CMD
+        зп      (М1)
+        пб      nxtop2
+HET     уиа     dryrun(М1)
+store   сч      CMD
+        мода    (М1)
+        зп      (M6)
+        пб      nxtop2
+HOB     уиа     newflg(М1)
+        пб      store
+********************        
+nxtopt  opt     (М5)
+        case    (Ttext,filenm),(Toctal,nuzzzz),(Tchar,delim)
+        уиа     7(М1)   нет адреса файла
+        пб      err
+********************
+filenm  сч      '1770'(М10)     текущий архив
+        зп      pultar
+        сч      CMD
+        зп      pultfn
+        сч      dstpag
+        сда     64-10
+        зп      pultpg
+        сч      maxlen
+        зп      pultln
+        сч      '76000' признак фиктивного чтения
+        зп      pultdr
+        пв      ffind(М11)      на success если успех
+        уии     М15(М1)
+        пб      exit
+succes  сч      pultnz  НУЗЗЗЗ
+        зп      1(М4)
+        сч      pultln  истинная длина
+        зп      2(М4)
+        сч      1(М4)
+        и       E18T1
+        зп      1(М4)
+        сч      CMD
+        зп      (М4)    запомним имя файла
+        пб      (М3)
+********************
+nuzzzz  сч      OCTAL
+        зп      (М4)
+        сч      CMD
+        зп      1(М4)
+        opt     err7,Toctal
+        пе      err7
+ulab    сч      CMD
+        зп      2(М4)
+        пб      (М3)
+********************
+delim   сч      CMD
+        нтж     semi
+        по      (М3)
+        уиа     7(М1)
+        пб      err
+nxtop3  opt     (М5)
+        case    (Ttext,filenm),(Toctal,nuzzzz),(Tchar,(M3))
+        уиа     7(М1)
+        пб      err
+ТП      lea     tpname(М4)
+getnam  сч      reset
+        пе      didrst
+        сч      E1
+        зп      reset
+        set     0,(tpflag,taflag,exeflg)
+didrst  сч      E1
+        зп      -1(М4)
+setloc  lea     err7(М5)
+        lea     nxtop2(М3)
+        пб      nxtopt
+TA      lea     taname(М4)
+        пб      getnam
+ВЫП     lea     exenam(М4)
+        пб      getnam
+ЗОНГП   set     0,exeflg
+        lea     bufnam(М4)
+        пб      didrst
+АДСИС   setloc  kАДСИС
+КОМП    setloc  pascmp
+output  setloc  stdout
+СБОЙ    setloc  sbojpg
+MABT23  setloc  avtkod
+ЗОНПЕЧ  setloc  listng
+НТП     set     0,(tpflag,taflag,exeflg)
+        пб      nxtop2
+НТА     set     0,(taflag,exeflg)
+        пб      nxtop2
+HВЫП    set     0,exeflg
+        пб      nxtop2
+РУКОВ   пб      rukov1
+rwzons  зп      e70wrd
+rwloop  Э70     e70wrd
+        сч      e70wrd
+        слц     ince70
+        зп      e70wrd
+        мода    (M6)
+        цикл    rwloop(М1)
+        пб      (М14)
+e70wrd  конд    в'0010370000400007'
+zero    msg     '!ДИНАМ ОБМЕН 0 ЛИСТОВ'
+        сч      
+        мода    '56001'
+        зп      
+        пб      pult
+rukov1  ioex    readfl,printr+1,1
+        сч      manual+1
+        или     rdpg34
+        зп      inploc
+        сч      manual+2
+        зп      inplen
+        call    load(М7)
+        уиа     exit1(М4)
+        счи     М4
+        зп      goto
+        Э70     saveme
+        пб      7
+ЗОНРУК  setloc  manual
+ЗОНБИЛ  setloc  printr
+radsys  ioex    rdpg36,kАДСИС+1,1
+        пб      (М4)
+этовсе  сч      telefl
+        зп      '75227'
+        пб      here
+here    сч      dryrun
+        по      notdry
+        сч      
+        зп      dryrun
+        lea     HETt(М15)
+        пб      exit
+notdry  сч      newflg
+        по      doprnt
+        сч      
+        зп      newflg
+        уиа     '76001'(М1)
+        уиа     (М2)
+cpynew  мода    '67777'
+        сч      (М2)
+        мода    '11777'
+        Э75     (М2)
+        слиа    -1(М2)
+        мода    (M6)
+        цикл    cpynew(М1)
+        lea     ready(М15)
+        пб      exit
+doprnt  сч      prntfl
+        по      rdpasc
+        сч      
+        зп      prntfl
+        ioex    readfl,listng+1,1
+        call    exec(М7)
+        уиа     rdpasc(М4)
+        счи     М4
+        зп      goto
+        Э70     saveme
+        пб      7
+rdpasc  сч      tpflag
+        по      skip
+        сч      pascmp+2
+        ioex    readfl,pascmp+1
+        call    exec(М7)
+        уиа     afterp(М4)
+        счи     М4
+        зп      goto
+        Э70     saveme
+        пб      7
+exec    сч      ТПloc
+        или     rdpg34
+        зп      inploc
+        сч      ТПlen
+        зп      inplen
+        сч      drum23+1
+        или     pg35
+        зп      outloc
+        сч      drum23+2
+        зп      outlen
+        пб      load
+afterp  сч      taflag
+        пе      skip
+        сч      '75235'
+        слц     E1
+        сда     64-42
+        рзб     unp77
+        слц     zon00
+        зп      txt23
+        lea     txt23(М15)
+        пб      exit
+txt23   текст   п'00 ЗОН ТЕКСТА НА МБ23'
+        конд    м40в'172'
+skip    сч      taflag
+        по      dontas
+        уиа     return(М4)
+        счи     М4
+        зп      goto
+        Э70     saveme
+        сч      keye72
+        уиа     '66005'(М16)
+        Э72     (М16)
+        сч      nu40
+        Э50     '105'
+        нтж     MD2048
+        пе      не2048
+        сч      avtkod+1
+        и       безНУ
+        нтж     z2000
+        зп      avtnuz
+        ioex    rdnu40,avtnuz,5
+        пб      verify
+не2048  сч      
+        зп      avtnuz
+        ioex    readfl,avtkod+1,5
+verify  сч      '4751'
+        нтж     magic1
+        по      patch
+        сч      E1
+        зп      avtflg
+        сч      avtnuz
+        по      chkmag
+        сч      nu57
+        Э50     '105'
+        нтж
+        пе      have57
+        сч      E2
+        зп      avtflg
+        Э72     rn4057
+chkmag  сч      shift
+        Э50     '112'
+        Э70     asmsec
+        сч      '6770'
+        нтж     magic2
+        пе      noasm
+        пб      goasm
+have57  Э72     ex4057
+        пб      chkmag
+noasm   msg     'НЕТ АВТОКОД ТРАНСЛЯТОРА'
+        Э62     
+patch   Э70     rddr23
+        мода    '11347'
+        сч      
+        или     patch1
+        мода    '11347'
+        Э75     
+        сч      patch2
+        мода    '11356'
+        Э75     
+        мода    '12000'
+        сч      
+        и       patch3
+        нтж     patch4
+        пе      nopch5
+        сч      patch5
+        Э75     '4751'
+nopch5  уиа     -4(М1)
+        сч      avtexe
+        call    rwzons(М14)
+goasm   уиа     (М4)
+        сч      drum23+2        макс. длина ???
+        уи      М5
+        сч      
+        пб      '6770'
+errsfl  пам     1
+avtflg  пам     1
+keye72  конд    Д'KEYE72'
+avtnuz  пам     1
+return  счи     М3
+        нтж     retadr
+        зп      errsfl
+        сч      keye72
+        уиа     '76001'(М16)
+        Э72     (М16)
+        сч      avtflg
+        по      avterr
+        сч      avtnuz
+        по      formex
+        сч      avtflg
+        нтж     E1
+        пе      noexch
+        Э72     ex4057
+gofrm   зп      ,  какой-то хак
+        зп      ,  здесь раньше явно что-то было
+        пб      formex
+noexch  Э72     rn5740
+        пб      gofrm
+avterr  сч      errsfl
+        по      noerrs
+        msg     'БЫЛИ ОШИБКИ В АВТОКОД ПРОГРАММЕ'
+        сч      
+        мода    '56001'
+        зп      
+        пб      pult
+noerrs  Э70     7       что-то откуда-то подчитываем
+formex  сч      5       длина в словах
+        сда     64+10
+        слц     E1
+        зп      6       кол-во полных зон
+        сч      pascal
+        зп      4       признак паскаль-программы
+        сч      avtflg
+        пе      noe75   командная свертка не нужна
+        ржа     '3'
+        сч      5
+        вчоб    
+        уи      М1
+        уиа     1(М2)
+tocmds  сч      (М2)    форсируем командную свертку
+        Э75     (М2)
+        слиа    1(М2)
+        мода    (M6)
+        цикл    tocmds(М1)
+noe75   сч      zongfl
+        по      nozong  ЗОНГП не просили
+repmax  сч      5
+        сда     64-33
+        рзб     П77777
+        или     eq
+        зп      maxadr+1
+        мода    maxadr
+        уиа     (М15)
+        пв      write(М16)      сообщаем длину программы
+        lea     bufnam(М2)
+        уиа     6(М3)
+        пб      checkl  на проверку, поместится ли
+********************
+chklen  ржа     '7'
+        сч      2(М2)
+        вч      (М3)
+        пе      toosml  не поместится
+wriexe  сч      1(М2)
+        и       E36T1
+        зп      temp    куда писать
+        сда     64-30
+        рзб     шесть7
+        зп      startz
+        сч      (М3)
+        зп      trueln  истинная длина
+        сда     64-36
+        рзб     four7
+        или     sp00sp
+        зп      nzon
+        сч      trueln
+        ioex    dstpag,temp
+        Э50     '105'
+        сда     64-32
+        рзб     foursp
+        или     sp00sp
+        зп      volume
+        сч      (М2)            имя файла или ВОСЬМР
+        зп      target
+        мода    repwrt
+        уиа     (М15)
+        пв      write(М16)      сообщаем успех записи
+        пб      (М4)
+temp    пам     1
+trueln  пам     1
+toosml  msg     'В МАССИВЕ НЕ ХВАТАЕТ ЗОН. ВЫПОЛНЯЮ ЗОНГП БУФ'
+        lea     buf(М2)
+        пб      wriexe
+repwrt  конд    п'НА БОБ'
+volume  текст   п' ХХХХ ЗАПИСЬ'
+nzon    текст   п' ХХХХ ЗОН С '
+startz  текст   п' ХХХХ  ЗОНЫ('
+target  конд    п'ХХХХХХ'
+        конд    п' )0000'м24в'172'
+buf     конд    п'БУФ   '
+        конд    в'0010000000270000'
+        конд    в'20'
+checkl  call    chklen(М4)
+        пб      dontas
+maxadr  текст   п'МАХАDR=ХХХХХ'
+        конд    м40в'172'
+nozong  сч      exeflg
+        пе      dontas
+        пб      repmax
+********************
+stdio   сч      stdin+1
+        или     rdpg34
+        зп      inploc
+        сч      stdin+2
+        зп      inplen
+        сч      stdout+1
+        или     pg35
+        зп      outloc
+        сч      stdout+2
+        зп      outlen
+        пб      load
+********************        
+dontas  пб      hack    было сч exeflg
+        по      ГОТОВО
+runexe  сч      taflag
+        пе      noread  только что скомпилировали
+        сч      exelen  грузим существующий код
+        ioex    readfl,exeloc,,page
+noread  сч      sbojpg+1
+        по      nosboj  сбойный лист стандартный
+        ioex    rdpg37,sbojpg+1,1
+        call    setup(М15)
+nosboj  сч      page
+        зп      destpg
+        call    stdio(М7)  уходит на загрузку
+        уиа     ГОТОВО(М4) сюда вернемся по концу
+        счи     М4
+        зп      goto
+        Э70     saveme
+        пб      7(М10)  уход на выполнение программы
+ГОТОВО  lea     done(М15) ВСЕ СДЕЛАНО
+        пб      exit
+err     сч      countr
+        пв      '74050'(М16)   число -> текст
+        или     ema
+        зп      leks+1
+        счи     М1
+        или     errno
+        зп      leks+2
+        мода    leks
+        уиа     (М15)
+        пв      write(М16)
+        lea     ident(М15)
+        пб      exit
+leks    конд    п'**ЛЕКС'
+        пам     2
+        конд    м40в'172'
+noterm  сч      E2
+        зп      '76013'
+        пб      (М15)
+********************        
+setup   сч      '76401'
+        нтж     ttio0
+        пе      (М15)
+        мода    vseed
+        Э71     
+        нед     
+        по      noterm
+        или     ttio1
+        зп      '76402'
+        зп      '76404'
+        сда     64-12
+        или     ttio2
+        зп      '76401'
+        или     readfl
+        зп      '76403'
+        пб      (М15)
+********************        
+load    сч      destpg
+        по      load1
+        сч      page
+        сда     64-10
+        уи      М10
+        пб      load2
+load1   уиа     (М10)
+load2   сч      5(М10)
+        уи      М1      длина программы
+        сли     М1(М10) прибавили адрес начала
+        уии     М17(М1) уст. стек на конец программы
+        пв      '74036'(М16) 
+        пв      '74037'(М16)
+        уии     М13(М1)
+        сч      '74001'
+        и       E15T1
+        зп      1(М1)
+        пб      (М7)
+rdpg34  конд    м30в'1034'
+ident   конд    п'IDЕNТ '
+curcmd  конд    п'НОВ   '
+        конд    п' QU000'м16в'172'
+HETt    конд    п'НЕТ000'м16в'172'
+ready   текст   п'НОВЫЙ ЗАПУСК ГОТОВ К ЗАПИСИ.'
+        конд    м40в'172'
+zon00   конд    п'00 ЗОН'
+        пам     1
+        текст   п' КОДА НА БУФ'
+        конд    м40в'172'
+done    текст   п'ВСЕ СДЕЛАНО.'
+        конд    м40в'172'
+telefl  конд    м39в'405'
+newflg  пам     1
+dryrun  пам     1
+prntfl  пам     1
+reset   пам     2
+page    пам     1
+destpg  пам     1
+tpflag  конд    п'1'
+tpname  конд    п'ВОСЬМР'
+ТПloc   конд    в'270000'
+ТПlen   конд    в'15'
+taflag  конд    п'1'
+taname  конд    п'МБ23  '
+        конд    в'0010000000230000'
+        конд    в'22'
+exeflg  конд    п'1'
+exenam  конд    п'БУФ   '
+exeloc  конд    в'0010000000270000'
+exelen  конд    в'20'
+stdin   конд    п'ВОСЬМР'
+        конд    в'260000'
+        конд    в'15'
+zongfl  пам     1
+bufnam  конд    п'БУФ   '
+        конд    в'0010000000270000'
+        конд    в'20'
+avtkod  конд    п'ВОСЬМР'
+        конд    в'570670'       на 2248: 570007
+        конд    в'5'
+pascmp  конд    п'КВСЕ  '
+        конд    в'400101'
+        конд    в'14'
+kАДСИС  конд    п'КАДСИС'
+        конд    в'400006'
+        конд    в'1'
+listng  конд    п'КПЕЧ  '
+        конд    в'400115'
+        конд    в'1'
+stdout  конд    п'0СТОUТ'
+        конд    в'270000'
+        конд    в'20'
+drum23  конд    п'МБ23  '
+        конд    в'230000'
+        конд    в'55'
+printr  конд    п'КБИЛИС'
+        конд    в'400116'
+        конд    в'1'
+manual  конд    п'ИПАСКЛ'
+        конд    в'300331'
+        конд    в'16'
+sbojpg  конд    п'ВОСЬМР'
+        пам     2
+E1      конд    п'1'
+semi    конд    п';'
+dot     конд    п'.'
+slash   конд    п'/'
+minus   конд    п'-'
+saveme  конд    в'0000330000170037'
+E2E1    конд    в'3'
+E2      конд    в'2'
+dstpag  пам     1
+maxlen  конд    в'20'
+E18T1   конд    в'777777'
+OCTAL   конд    п'ВОСЬМР'
+ince70  конд    м30в'1'в'1'
+readfl  конд    м39в'1'
+rdpg36  конд    м30в'1036'
+vseed   конд    в'-1'
+pg35    конд    м30в'35'
+unp77   конд    п'770000'
+nu40    конд    в'400000'
+MD2048  конд    х'2048'
+безНУ   конд    в'770000'в'-1'
+z2000   конд    в'402000'       на 2248: 400000
+rdnu40  конд    в'0010000000400000'
+magic1  конд    в'0010000052477767'
+nu57    конд    в'570000'
+rn4057  конд    в'3740115777000000'
+shift   конд    в'570670'       на 2248: 570007
+asmsec  конд    в'0014030100100111'
+magic2  конд    в'0040000200706772'
+ex4057  конд    в'3040115777000000'
+rddr23  конд    в'0010050000230000'
+patch1  зп
+        Э75
+patch2  цикл    1(М1)
+        пб      '66005'
+patch3  конд    м40в'377'
+patch4  конд    м40в'223'
+patch5  сч
+        пб      '4013'
+avtexe  конд    в'100006'
+retadr  конд    в'66005'
+rn5740  конд    в'3757114077000000'
+pascal  конд    п'РАSСАL'
+П77777  конд    п'77777'
+eq      конд    п'=00000'
+E36T1   конд    в'777777777777'
+шесть7  конд    п'777777'
+four7   конд    п'077770'
+sp00sp  конд    п' 0000 '
+foursp  конд    п'0    0'
+rdpg37  конд    м30в'1037'
+ema     конд    п'ЕМА=00'
+errno   конд    п' ОШ=00'
+ttio0   конд    в'0420000011110000'
+ttio1   конд    п'500000'
+ttio2   конд    в'0420000011000000'
+E15T1   конд    в'77777'
+        пам     310
+hack    сч      '75777'
+        нтж     lazy
+        по      hack2
+        сч      exeflg
+        по      ГОТОВО
+        пб      runexe
+hack2   сч      exeflg
+        пе      runexe
+        кк      '70',nuzlaz(M6) левый Э70
+        зп
+        зп      '75777'
+        пб      runlaz
+nuzlaz  конд    в'0010000000400034'
+lazy    конд    п'ЛЕНТЯЙ'
+temp1   пам     1
+runlaz  сч      inploc
+        зп      temp1
+        пб      7
+        зп
+inploc  equ     '75211'
+inplen  equ     '75212'
+outloc  equ     '75203'
+outlen  equ     '75204'
+exfcnt  equ     '77765'
+pultar  equ     '77770'
+pultfn  equ     '77771'
+pultpg  equ     '77772'
+pultln  equ     '77773'
+pultdr  equ     '77774'
+pultnz  equ     '77775'
+argv    equ     '76015'
+parse   equ     '76016'
+write   equ     '76005'
+ffind   equ     '76006'
+pult    equ     '76002'
+M1      equ     1
+M2      equ     2
+M3      equ     3
+M4      equ     4
+M5      equ     5
+M6      equ     6
+M7      equ     7
+M10     equ     '10'
+M11     equ     '11'
+M12     equ     '12'
+M13     equ     '13'
+M14     equ     '14'
+M15     equ     '15'
+M16     equ     '16'
+M17     equ     '17'
+        ФИНИШ
+КВЧ$$$
+ТРН$$$
+1-1
+НАЗ   000001
+ЗОНГП 430000  0001
+КНЦ$$$
+*end file
+``````
+ЕКОНЕЦ
